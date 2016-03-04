@@ -60,7 +60,10 @@ namespace Platform.Helpers.Threading
 #endif
         }
 
+<<<<<<< HEAD
 #if NET45
+=======
+>>>>>>> 9fe309aeebc832ff3656bd5c8f2f766b327b6ab5
         public static Thread StartNew<T>(T param, Action<object> action)
         {
 #if DEBUG
@@ -102,6 +105,9 @@ namespace Platform.Helpers.Threading
             thread.Start();
             return thread;
         }
+<<<<<<< HEAD
 #endif
+=======
+>>>>>>> 9fe309aeebc832ff3656bd5c8f2f766b327b6ab5
     }
 }
