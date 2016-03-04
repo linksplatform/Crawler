@@ -1,0 +1,230 @@
+<head>
+  <title>crawler</title>
+</head>
+
+<template name="layout">
+  <div class="container">
+    <header>
+      {{> navbar }}
+    </header>
+    {{> yield}}
+  </div>
+</template>
+
+<template name="home">
+  {{> sites}}
+  {{> queries}}
+</template>
+
+<template name='navbar'>
+  <nav class="navbar navbar-default" role="navigation">
+    <div class="container-fluid">
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        {{> navBrand}}
+      </div>
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav">
+          {{> leftNavItems}}
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          {{> rightNavItems}}
+        </ul>
+      </div><!-- /.navbar-collapse -->
+    </div><!-- /.container-fluid -->
+  </nav>
+</template>
+
+<template name="navBrand">
+  <a class="navbar-brand" href="{{ pathFor 'home' }}">Поиск</a>
+</template>
+
+<template name='leftNavItems'>
+  <li class="{{ activeIfTemplateIs 'sites' }}">
+    <a href="{{ pathFor 'sites'}}">Сайты</a>
+  </li>
+  <li class="{{ activeIfTemplateIs 'queries' }}">
+    <a href="{{ pathFor 'queries'}}">Запросы</a>
+  </li>
+</template>
+
+<template name='rightNavItems'>
+  {{#each states}}
+    {{> dataCollectionSwitch }}
+  {{/each}}
+</template>
+
+<template name="dataCollectionSwitch">
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button">
+      Сбор данных
+      {{#if switchInProgress}}
+        <span class="glyphicon glyphicon-refresh text-warning"></span>
+      {{else}}
+        {{#if stopped}}
+          <span class="glyphicon glyphicon-stop text-danger"></span>
+        {{/if}}
+        {{#if running}}
+          <span class="glyphicon glyphicon-play text-success"></span>
+        {{/if}}
+      {{/if}}
+      <span class="caret"></span>
+    </a>
+    {{#if switchCompleted}}
+    <ul class="dropdown-menu">
+      {{#if stopped}}
+      <li>
+        <a href="#" role="button" name="start" title="Запустить сбор данных со всех сайтов">
+          <span class="glyphicon glyphicon-play text-success"></span>
+          Запустить
+        </a>
+      </li>
+      {{/if}}
+      {{#if running}}
+      <li>
+        <a href="#" role="button" name="stop" title="Остановить сбор данных со всех сайтов">
+          <span class="glyphicon glyphicon-stop text-danger"></span>
+          Остановить
+        </a>
+      </li>
+      {{/if}}
+      <li role="separator" class="divider"></li>
+      <li>
+        <a href="#" role="button" name="reset" title="Удалить все собранные данные">
+          <span class="glyphicon glyphicon-remove text-danger"></span>
+          <span class="text-danger">Сбросить всё</span>
+        </a>
+      </li>
+    </ul>
+    {{/if}}
+  </li>
+</template>
+
+<template name="queries">
+  <div class="container">
+    <h1>Запросы</h1>
+    {{#autoForm collection=Queries id="insertQueries" type="insert"}}
+      <div class="form-group {{#if afFieldIsInvalid name='value'}} has-error{{/if}}">
+        <div class="input-group">
+          {{> afFieldInput name='value'}}
+          <span class="input-group-btn">
+            <button class="btn btn-success" type="submit">Добавить</button>
+          </span>
+        </div>
+        {{#if afFieldIsInvalid name='value'}}
+          <br>
+          <div class="alert alert-danger well-sm">{{afFieldMessage name='value'}}</div>
+        {{/if}}
+      </div>
+    {{/autoForm}}
+    <ul class="list-group">
+      {{#each queries}}
+        {{> query}}
+      {{/each}}
+    </ul>
+  </div>
+</template>
+
+<template name="query">
+  <li class="list-group-item">
+    <a href="/query/{{_id}}" role="button">
+      {{value}}
+    </a>
+  </li>
+</template>
+
+<template name="queryResults">
+  <div class="container">
+    <h1>Результаты</h1>
+    {{#autoForm collection=Results id="insertQueryResults" type="insert"}}
+      <div class="form-group {{#if afFieldIsInvalid name='url'}} has-error{{/if}}" title="Форма добавления доступна только для отладки">
+        <div class="input-group">
+          <div class="row">
+            <div class="col-xs-3">
+              {{> afFieldInput name='query' value=queryId}}
+            </div>
+            <div class="col-xs-9">
+              {{> afFieldInput name='url'}}
+            </div>
+          </div>
+          <span class="input-group-btn">
+            <button class="btn btn-success" type="submit">Добавить</button>
+          </span>
+        </div>
+        <br />
+        {{#if afFieldIsInvalid name='query'}}
+          <div class="alert alert-danger well-sm">{{afFieldMessage name='query'}}</div>
+        {{/if}}
+        {{#if afFieldIsInvalid name='url'}}
+          <div class="alert alert-danger well-sm">{{afFieldMessage name='url'}}</div>
+        {{/if}}
+      </div>
+    {{/autoForm}}
+    <ul class="list-group">
+      {{#each results}}
+        {{> queryResult}}
+      {{/each}}
+    </ul>
+  </div>
+</template>
+
+<template name="queryResult">
+  <li class="list-group-item">
+    <a href="{{url}}" role="button">
+      {{url}}
+    </a>
+    <span class="label label-default" title="Идентификатор">{{_id}}</span>
+  </li>
+</template>
+
+<template name="sites">
+  <div class="container">
+    <h1>Сайты</h1>
+    {{#autoForm collection=Sites id="insertSites" type="insert"}}
+      <div class="form-group{{#if afFieldIsInvalid name='url'}} has-error{{/if}}">
+        <div class="input-group">
+          {{> afFieldInput name='url'}}
+          <span class="input-group-btn">
+            <button class="btn btn-success" type="submit">Добавить</button>
+          </span>
+        </div>
+        {{#if afFieldIsInvalid name='url'}}
+          <br>
+          <div class="alert alert-danger well-sm">{{afFieldMessage name='url'}}</div>
+        {{/if}}
+      </div>
+    {{/autoForm}}
+    <ul class="list-group">
+      {{#each sites}}
+        {{> site}}
+      {{/each}}
+    </ul>
+  </div>
+</template>
+
+<template name="site">
+  {{#if crawEnabled}}
+    <li class="list-group-item">
+      {{url}}
+      <span class="label label-default" title="Страниц обработано">{{crawledPages}}</span>
+      <button name="false" class="btn btn-default btn-xs pull-right" title="Выключить сбор данных с этого сайта">
+        выкл
+      </button>
+    </li>
+  {{else}}
+    <li class="list-group-item disabled">
+      {{url}}
+      <span class="label label-default" title="Страниц обработано">{{crawledPages}}</span>
+      <button name="true" class="btn btn-default btn-xs pull-right" title="Включить сбор данных с этого сайта">
+        вкл
+      </button>
+    </li>
+  {{/if}}
+</template>
