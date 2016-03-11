@@ -92,6 +92,7 @@
   <ItemGroup>
     <Compile Include="Crawler.cs" />
     <Compile Include="CrawlDecisions.cs" />
+    <Compile Include="EdgeJsProxy.cs" />
     <Compile Include="LogService.cs" />
     <Compile Include="PagesService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -20,7 +20,7 @@ namespace Platform.Web.Crawler
 
         static Crawler()
         {
-           DefaultCrawlConfiguration = CreateDefaultConfiguration();
+            DefaultCrawlConfiguration = CreateDefaultConfiguration();
         }
 
         private static CrawlConfiguration CreateDefaultConfiguration()
@@ -73,6 +73,9 @@ namespace Platform.Web.Crawler
 
         public void Start(Uri uri)
         {
+            if (_cancellationToken.IsCancellationRequested)
+                return;
+
             var crawler = new PoliteWebCrawler(DefaultCrawlConfiguration, null, null, null, null, null, null, null, null);
 
             crawler.PageCrawlCompleted += crawler_ProcessPageCrawlCompleted;
