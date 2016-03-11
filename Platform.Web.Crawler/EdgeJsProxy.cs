@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,11 +24,15 @@ namespace Platform.Web.Crawler
         private readonly ILog _logger;
         private CancellationTokenSource _cancellationSource;
 
+        private string _databasePath;
+
         private LinksMemoryManager _memoryManager;
         private Links _links;
 
         private ulong _pageMarker;
         private ulong _sequencesMarker;
+
+        private bool _disposed;
 
         public EdgeJsProxy()
         {
@@ -35,6 +40,8 @@ namespace Platform.Web.Crawler
 
             new LogService().Configure();
             _logger = LogManager.GetLogger("default");
+
+            _disposed = false;
         }
 
         private ulong CreatePoint()
@@ -61,16 +68,18 @@ namespace Platform.Web.Crawler
 
         public async Task<object> Invoke(object input)
         {
+            if (_disposed) throw new ObjectDisposedException("EdgeJsProxy");
+
             try
             {
-                var databasePath = input as string;
+                _databasePath = input as string;
 
-                if (string.IsNullOrWhiteSpace(databasePath))
-                    databasePath = DefaultDatabaseFilename;
+                if (string.IsNullOrWhiteSpace(_databasePath))
+                    _databasePath = DefaultDatabaseFilename;
 
                 _cancellationSource = new CancellationTokenSource();
 
-                _memoryManager = new LinksMemoryManager(databasePath, 64 * 1024 * 1024);
+                _memoryManager = new LinksMemoryManager(_databasePath, 64 * 1024 * 1024);
                 _links = new Links(_memoryManager);
 
                 new UnicodeMap(_links).Init();
@@ -86,8 +95,6 @@ namespace Platform.Web.Crawler
                 var sequences = new Sequences(_links, sequencesOptions);
 
                 var pagesRepository = new PagesService(_links, sequences, _pageMarker);
-
-                var crawler = new Crawler(pagesRepository, _cancellationSource.Token);
 
                 var proxy = new
                 {
@@ -145,6 +152,9 @@ namespace Platform.Web.Crawler
                     StartCrawl = (Func<object, Task<object>>)(async (dynamic p) =>
                     {
                         var urls = ((object[])p.urls).Cast<string>().ToArray();
+                        var pageCrawled = (Func<object, Task<object>>)p.pageCrawled;
+
+                        var crawler = new Crawler(pagesRepository, _cancellationSource.Token, args => pageCrawled(args));
 
                         Task task = null;
 
@@ -166,6 +176,8 @@ namespace Platform.Web.Crawler
                             }
                         }
 
+                        if (task != null) await task;
+
                         return null;
                     }),
 
@@ -182,8 +194,31 @@ namespace Platform.Web.Crawler
                         return null;
                     }),
 
+                    Reset = (Func<object, Task<object>>)(async p =>
+                    {
+                        if (!_disposed)
+                        {
+                            _cancellationSource.Cancel();
+
+                            Task task;
+                            while (_tasks.TryTake(out task))
+                                await task;
+
+                            _links.Dispose();
+                            _memoryManager.Dispose();
+
+                            _disposed = true;
+                        }
+
+                        File.Delete(_databasePath);
+
+                        return null;
+                    }),
+
                     Dispose = (Func<object, Task<object>>)(async p =>
                     {
+                        if (_disposed) throw new ObjectDisposedException("EdgeJsProxy");
+
                         _cancellationSource.Cancel();
 
                         Task task;
@@ -192,6 +227,8 @@ namespace Platform.Web.Crawler
 
                         _links.Dispose();
                         _memoryManager.Dispose();
+
+                        _disposed = true;
 
                         return null;
                     })

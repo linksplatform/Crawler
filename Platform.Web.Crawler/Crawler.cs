@@ -11,11 +11,14 @@ namespace Platform.Web.Crawler
 
         private readonly PagesService _repository;
         private readonly CancellationToken _cancellationToken;
+        private readonly Action<object> _pageCrawled;
+        private Uri _uri;
 
-        public Crawler(PagesService repository, CancellationToken cancellationToken)
+        public Crawler(PagesService repository, CancellationToken cancellationToken, Action<object> pageCrawled = null)
         {
             _repository = repository;
             _cancellationToken = cancellationToken;
+            _pageCrawled = pageCrawled;
         }
 
         static Crawler()
@@ -76,6 +79,8 @@ namespace Platform.Web.Crawler
             if (_cancellationToken.IsCancellationRequested)
                 return;
 
+            _uri = uri;
+
             var crawler = new PoliteWebCrawler(DefaultCrawlConfiguration, null, null, null, null, null, null, null, null);
 
             crawler.PageCrawlCompleted += crawler_ProcessPageCrawlCompleted;
@@ -101,6 +106,9 @@ namespace Platform.Web.Crawler
         private void crawler_ProcessPageCrawlCompleted(object sender, PageCrawlCompletedArgs e)
         {
             _repository.Save(e.CrawledPage);
+
+            if (_pageCrawled != null)
+                _pageCrawled(new { SiteUrl = _uri.ToString(), PageUrl = e.CrawledPage.Uri.ToString() });
 
             if (_cancellationToken.IsCancellationRequested)
                 e.CrawlContext.IsCrawlStopRequested = true;

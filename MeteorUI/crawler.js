@@ -7,15 +7,10 @@ function disableRemove(collection)
   });
 }
 
-Meteor.methods({
-  reset: function () {
-      Sites.remove({});
-      Queries.remove({});
-      Results.remove({});
-  },
-});
-
 States = new Mongo.Collection("states");
+Sites = new Mongo.Collection("sites");
+Queries = new Mongo.Collection("queries");
+//disableRemove(Queries);
 
 States.attachSchema(new SimpleSchema({
   value: {
@@ -31,17 +26,86 @@ States.attachSchema(new SimpleSchema({
 
 if(Meteor.isServer)
 {
-  if(!States.findOne())
-    States.insert({ value: "stopped" });
-}
+  var edge = Npm.require('edge');
+  var path = Npm.require('path');
 
-Sites = new Mongo.Collection("sites");
-//disableRemove(Sites);
+  var base = path.resolve('../../../../../.');
+
+  var createCrawlerProxy = function() {
+    var CrawlerProxy = edge.func({
+      assemblyFile: path.resolve(base, '../Platform.Web.Crawler/bin/Debug/Platform.Web.Crawler.dll'),
+      typeName: 'Platform.Web.Crawler.EdgeJsProxy',
+    });
+
+    return CrawlerProxy(path.join(base, 'crawler.links'), true);
+  }
+  
+  var crawlerProxy = createCrawlerProxy();
+  
+  var crawlerState = States.findOne();
+  
+  if(!crawlerState)
+  {
+    States.insert({ value: "stopped" });
+    crawlerState = States.findOne();
+  }
+
+  Meteor.methods({
+    startCrawl: function () {
+        var sitesToCrawl = Sites.find({ crawEnabled: true }).fetch();
+        
+        var urlsToCrawl = [];
+        
+        for(var i = 0; i < sitesToCrawl.length; i++)
+          urlsToCrawl.push(sitesToCrawl[i].url);
+        
+        crawlerProxy.StartCrawl({ urls: urlsToCrawl, pageCrawled: Meteor.bindEnvironment(function (result) {
+          console.dir(result.SiteUrl);
+          Sites.update({ url: result.SiteUrl }, {
+            $inc: { crawledPages: 1 }
+          });
+        })}, Meteor.bindEnvironment(function () {
+          States.update(crawlerState._id, {
+            $set: {
+              value: "stopped",
+              switchInProgress: false
+            }
+          });
+        }));
+    },
+    stopCrawl: function () {
+      crawlerProxy.StopCrawl({}, Meteor.bindEnvironment(function () {
+        States.update(crawlerState._id, {
+          $set: {
+            switchInProgress: false
+          }
+        });
+      }));
+    },
+    shutdown: function () {
+      crawlerProxy.Dispose({}, true);
+    },
+    reset: function () {
+      crawlerProxy.Reset({}, true);
+      
+      crawlerProxy = createCrawlerProxy();
+    
+      Sites.remove({});
+      Queries.remove({});
+      Results.remove({});
+    },
+  });
+}
 
 Sites.attachSchema(new SimpleSchema({
   url: {
     type: String,
-    regEx: SimpleSchema.RegEx.Url
+    regEx: SimpleSchema.RegEx.Url,
+    autoValue: function() {
+      if(this.isSet) {
+        if (this.value[this.value.length - 1] != '/') return this.value + '/';
+      }
+    }
   },
   crawledPages: {
     type: Number,
@@ -54,9 +118,6 @@ Sites.attachSchema(new SimpleSchema({
     defaultValue: true
   }
 }));
-
-Queries = new Mongo.Collection("queries");
-//disableRemove(Queries);
 
 Queries.attachSchema(new SimpleSchema({
   value: {
@@ -164,13 +225,13 @@ if (Meteor.isClient) {
           switchInProgress: true
         }
       }, function() {
-        setTimeout(function(){
+        Meteor.call('startCrawl', function() {
           States.update(template.data._id, {
             $set: {
               switchInProgress: false
             }
           });
-        }, 500);
+        });
       });
     },
     'click a[name=stop]': function(event, template) {
@@ -180,15 +241,7 @@ if (Meteor.isClient) {
           switchInProgress: true
         }
       }, function() {
-        
-        setTimeout(function(){
-          States.update(template.data._id, {
-            $set: {
-              switchInProgress: false
-            }
-          });
-        }, 500);
-        
+        Meteor.call('stopCrawl', function() { });
       });
     },
     'click a[name=reset]': function(event, template) {
