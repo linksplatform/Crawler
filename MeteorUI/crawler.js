@@ -37,7 +37,10 @@ if(Meteor.isServer)
       typeName: 'Platform.Web.Crawler.EdgeJsProxy',
     });
 
-    return CrawlerProxy(path.join(base, 'crawler.links'), true);
+    return CrawlerProxy({
+      dataPath: path.join(base, 'crawler.links'),
+      logPath: path.join(base, 'log.txt')
+    }, true);
   }
   
   var crawlerProxy = createCrawlerProxy();
@@ -47,6 +50,16 @@ if(Meteor.isServer)
   if(!crawlerState)
   {
     States.insert({ value: "stopped" });
+    crawlerState = States.findOne();
+  }
+  else
+  {
+    States.update(crawlerState._id, {
+      $set: {
+        value: "stopped",
+        switchInProgress: false
+      }
+    });
     crawlerState = States.findOne();
   }
 
@@ -65,7 +78,8 @@ if(Meteor.isServer)
             $inc: { crawledPages: 1 }
           });
         })}, Meteor.bindEnvironment(function () {
-          States.update(crawlerState._id, {
+          // Crawl finished
+          States.update({ value: "crawling" }, {
             $set: {
               value: "stopped",
               switchInProgress: false
@@ -74,16 +88,15 @@ if(Meteor.isServer)
         }));
     },
     stopCrawl: function () {
-      crawlerProxy.StopCrawl({}, Meteor.bindEnvironment(function () {
-        States.update(crawlerState._id, {
-          $set: {
-            switchInProgress: false
-          }
-        });
-      }));
+      crawlerProxy.StopCrawl({}, true);
+    },
+    restart: function () {
+      crawlerProxy = createCrawlerProxy();
     },
     shutdown: function () {
       crawlerProxy.Dispose({}, true);
+      
+      crawlerProxy = null;
     },
     reset: function () {
       crawlerProxy.Reset({}, true);
@@ -202,65 +215,56 @@ if (Meteor.isClient) {
     }
   });
   
-  Template.dataCollectionSwitch.helpers({
+  Template.applicationSwitch.helpers({
     switchInProgress: function() {
       return this.switchInProgress;
-    },
-    running: function() {
-      return this.value == "running";
-    },
-    stopped: function() {
-      return this.value == "stopped";
     },
     switchCompleted: function() {
       return !this.switchInProgress;
     },
+    crawling: function() {
+      return this.value == "crawling";
+    },
+    stopped: function() {
+      return this.value == "stopped";
+    },
+    running: function() {
+      return this.value != "shutdown";
+    },
+    shutdown: function() {
+      return this.value == "shutdown";
+    }
   });
   
-  Template.dataCollectionSwitch.events({
-    'click a[name=start]': function(event, template) {
-      States.update(template.data._id, {
-        $set: {
-          value: "running",
-          switchInProgress: true
-        }
-      }, function() {
-        Meteor.call('startCrawl', function() {
-          States.update(template.data._id, {
-            $set: {
-              switchInProgress: false
-            }
-          });
-        });
+  function switchTo(state, call, template)
+  {
+    States.update(template.data._id, {
+      $set: {
+        value: state,
+        switchInProgress: true
+      }
+    }, function() {
+      Meteor.call(call, function() {
+        States.update(template.data._id, { $set: { switchInProgress: false } });
       });
+    });
+  }
+  
+  Template.applicationSwitch.events({
+    'click a[name=turn-on]': function(event, template) {
+      switchTo('stopped', 'restart', template);
+    },
+    'click a[name=turn-off]': function(event, template) {
+      switchTo('shutdown', 'shutdown', template);
+    },
+    'click a[name=start-crawl]': function(event, template) {
+      switchTo('crawling', 'startCrawl', template);
     },
     'click a[name=stop]': function(event, template) {
-      States.update(template.data._id, {
-        $set: {
-          value: "stopped",
-          switchInProgress: true
-        }
-      }, function() {
-        Meteor.call('stopCrawl', function() { });
-      });
+      switchTo('stopped', 'stopCrawl', template);
     },
     'click a[name=reset]': function(event, template) {
-      States.update(template.data._id, {
-        $set: {
-          value: "stopped",
-          switchInProgress: true
-        }
-      }, function() {
-        
-        Meteor.call('reset', function() {
-          States.update(template.data._id, {
-            $set: {
-              switchInProgress: false
-            }
-          });
-        });
-        
-      });
+      switchTo('stopped', 'reset', template);
     }
   });
   

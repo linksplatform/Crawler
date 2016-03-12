@@ -8,7 +8,9 @@ namespace Platform.Web.Crawler
 {
     public class LogService
     {
-        public void Configure()
+        private const string DefaultLogFile = "log.txt";
+
+        public void Configure(string logFile = null)
         {
             var hierarchy = (Hierarchy)LogManager.GetRepository();
 
@@ -18,10 +20,13 @@ namespace Platform.Web.Crawler
             };
             patternLayout.ActivateOptions();
 
+            if (string.IsNullOrWhiteSpace(logFile))
+                logFile = DefaultLogFile;
+
             var roller = new RollingFileAppender
             {
-                AppendToFile = false,
-                File = @"log.txt",
+                AppendToFile = true,
+                File = logFile,
                 Layout = patternLayout,
                 MaxSizeRollBackups = 10,
                 MaximumFileSize = "50MB",

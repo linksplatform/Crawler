@@ -57,11 +57,12 @@
 
 <template name='rightNavItems'>
   {{#each states}}
-    {{> dataCollectionSwitch }}
+    {{> applicationSwitch }}
   {{/each}}
 </template>
 
-<template name="dataCollectionSwitch">
+<template name="applicationSwitch">
+  {{#if running}}
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button">
       Сбор данных
@@ -71,7 +72,7 @@
         {{#if stopped}}
           <span class="glyphicon glyphicon-stop text-danger"></span>
         {{/if}}
-        {{#if running}}
+        {{#if crawling}}
           <span class="glyphicon glyphicon-play text-success"></span>
         {{/if}}
       {{/if}}
@@ -81,13 +82,13 @@
     <ul class="dropdown-menu">
       {{#if stopped}}
       <li>
-        <a href="#" role="button" name="start" title="Запустить сбор данных со всех сайтов">
+        <a href="#" role="button" name="start-crawl" title="Запустить сбор данных со всех сайтов">
           <span class="glyphicon glyphicon-play text-success"></span>
           Запустить
         </a>
       </li>
       {{/if}}
-      {{#if running}}
+      {{#if crawling}}
       <li>
         <a href="#" role="button" name="stop" title="Остановить сбор данных со всех сайтов">
           <span class="glyphicon glyphicon-stop text-danger"></span>
@@ -103,6 +104,25 @@
         </a>
       </li>
     </ul>
+    {{/if}}
+  </li>
+  {{/if}}
+  <li>
+    {{#if switchInProgress}}
+      <a href="#" role="button">
+        <span class="glyphicon glyphicon-refresh text-warning"></span>
+      </a>
+    {{else}}
+      {{#if shutdown}}
+        <a href="#" role="button" name="turn-on" title="Открыть хранилище данных и приготовиться к работе">
+          <span class="glyphicon glyphicon-off text-danger"></span>
+        </a>
+      {{/if}}
+      {{#if running}}
+        <a href="#" role="button" name="turn-off" title="Закрыть хранилище данных и приготовиться к безопасному выключению">
+          <span class="glyphicon glyphicon-off text-success"></span>
+        </a>
+      {{/if}}
     {{/if}}
   </li>
 </template>

@@ -18,13 +18,13 @@ namespace Platform.Web.Crawler
 {
     public class EdgeJsProxy
     {
-        private const string DefaultDatabaseFilename = "db.links";
+        private const string DefaultDataFile = "db.links";
 
         private readonly ConcurrentBag<Task> _tasks;
-        private readonly ILog _logger;
+        private ILog _logger;
         private CancellationTokenSource _cancellationSource;
 
-        private string _databasePath;
+        private string _dataPath;
 
         private LinksMemoryManager _memoryManager;
         private Links _links;
@@ -37,9 +37,6 @@ namespace Platform.Web.Crawler
         public EdgeJsProxy()
         {
             _tasks = new ConcurrentBag<Task>();
-
-            new LogService().Configure();
-            _logger = LogManager.GetLogger("default");
 
             _disposed = false;
         }
@@ -66,20 +63,25 @@ namespace Platform.Web.Crawler
             AllocateMarker(ref currentMarker, out _sequencesMarker, "маркер последовательности");
         }
 
-        public async Task<object> Invoke(object input)
+        public async Task<object> Invoke(dynamic input)
         {
             if (_disposed) throw new ObjectDisposedException("EdgeJsProxy");
 
             try
             {
-                _databasePath = input as string;
+                var logPath = input.logPath as string;
 
-                if (string.IsNullOrWhiteSpace(_databasePath))
-                    _databasePath = DefaultDatabaseFilename;
+                new LogService().Configure(logPath);
+                _logger = LogManager.GetLogger("default");
 
                 _cancellationSource = new CancellationTokenSource();
 
-                _memoryManager = new LinksMemoryManager(_databasePath, 64 * 1024 * 1024);
+                _dataPath = input.dataPath as string;
+
+                if (string.IsNullOrWhiteSpace(_dataPath))
+                    _dataPath = DefaultDataFile;
+
+                _memoryManager = new LinksMemoryManager(_dataPath, 64 * 1024 * 1024);
                 _links = new Links(_memoryManager);
 
                 new UnicodeMap(_links).Init();
@@ -210,7 +212,7 @@ namespace Platform.Web.Crawler
                             _disposed = true;
                         }
 
-                        File.Delete(_databasePath);
+                        File.Delete(_dataPath);
 
                         return null;
                     }),
