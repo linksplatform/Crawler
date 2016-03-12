@@ -1,16 +1,7 @@
-function disableRemove(collection)
-{
-  collection.deny({
-    remove: function(userId, document) {
-      return true;
-    }
-  });
-}
-
 States = new Mongo.Collection("states");
 Sites = new Mongo.Collection("sites");
 Queries = new Mongo.Collection("queries");
-//disableRemove(Queries);
+Results = new Mongo.Collection("results");
 
 States.attachSchema(new SimpleSchema({
   value: {
@@ -23,6 +14,33 @@ States.attachSchema(new SimpleSchema({
     defaultValue: false
   }
 }))
+
+if(Meteor.isServer)
+{
+  Sites.deny({
+    insert: function(userId, document) {
+      var url = document.url;
+
+      if (url[url.length - 1] != '/') url += '/';
+      
+      return Sites.findOne({ url: url }) != null;
+    }
+  });
+
+  Queries.deny({
+    insert: function(userId, document) {
+      var state = States.findOne();
+      if (state.switchInProgress || state.value == 'shutdown' || state.value == 'crawling')
+        return true;
+      
+      return Queries.findOne({ value: document.value }) != null;
+    }
+  });
+
+  Queries.after.insert(function (userId, document) {
+    Meteor.call('startSearch', document, function() { });
+  });
+}
 
 if(Meteor.isServer)
 {
@@ -65,47 +83,91 @@ if(Meteor.isServer)
 
   Meteor.methods({
     startCrawl: function () {
-        var sitesToCrawl = Sites.find({ crawEnabled: true }).fetch();
+      var sitesToCrawl = Sites.find({ crawEnabled: true }).fetch();
+      
+      var urlsToCrawl = [];
+      
+      for(var i = 0; i < sitesToCrawl.length; i++)
+        urlsToCrawl.push(sitesToCrawl[i].url);
+      
+      crawlerProxy.StartCrawl({ urls: urlsToCrawl, pageCrawled: Meteor.bindEnvironment(function (result, callback) {
+        Sites.update({ url: result.SiteUrl }, {
+          $inc: { crawledPages: 1 }
+        });
         
-        var urlsToCrawl = [];
-        
-        for(var i = 0; i < sitesToCrawl.length; i++)
-          urlsToCrawl.push(sitesToCrawl[i].url);
-        
-        crawlerProxy.StartCrawl({ urls: urlsToCrawl, pageCrawled: Meteor.bindEnvironment(function (result) {
-          console.dir(result.SiteUrl);
-          Sites.update({ url: result.SiteUrl }, {
-            $inc: { crawledPages: 1 }
-          });
-        })}, Meteor.bindEnvironment(function () {
-          // Crawl finished
-          States.update({ value: "crawling" }, {
-            $set: {
-              value: "stopped",
-              switchInProgress: false
-            }
-          });
-        }));
+        callback(null, true);
+      })}, Meteor.bindEnvironment(function () {
+        // Crawl finished
+        States.update({ value: "crawling" }, {
+          $set: {
+            value: "stopped",
+            switchInProgress: false
+          }
+        });
+      }));
+      
+      return true;
     },
     stopCrawl: function () {
-      crawlerProxy.StopCrawl({}, true);
+      crawlerProxy.StopCrawl({}, Meteor.bindEnvironment(function (result) {
+        States.update(crawlerState._id, { $set: { switchInProgress: false } });
+      }));
+      
+      return true;
+    },
+    startSearch: function (query) {
+      crawlerProxy.StartSearch({
+        query: query.value, 
+        pageFound: Meteor.bindEnvironment(function (result, callback) {
+          Queries.update(query._id, {
+            $inc: { results: 1 }
+          }, function() { });
+          Results.insert({ query: query._id, url: result.Url }, function () { });
+          
+          callback(null, true);
+        }),
+        searchFinished: Meteor.bindEnvironment(function (result, callback) {
+          Queries.update(query._id, {
+            $set: { finished: new Date() }
+          }, function () { });
+          
+          callback(null, true);
+        })
+      }, function() { });
+    },
+    stopSearch: function () {
+      crawlerProxy.StopSearch({}, Meteor.bindEnvironment(function (result) {
+        States.update(crawlerState._id, { $set: { switchInProgress: false } });
+      }));
+      
+      return true;
     },
     restart: function () {
       crawlerProxy = createCrawlerProxy();
+      
+      return true;
     },
     shutdown: function () {
-      crawlerProxy.Dispose({}, true);
+      crawlerProxy.Dispose({}, Meteor.bindEnvironment(function (result) {
+        crawlerProxy = null;
+        
+        States.update(crawlerState._id, { $set: { switchInProgress: false } });
+      }));
       
-      crawlerProxy = null;
+      return true;
     },
     reset: function () {
-      crawlerProxy.Reset({}, true);
-      
-      crawlerProxy = createCrawlerProxy();
+      crawlerProxy.Reset({}, Meteor.bindEnvironment(function (result) {
+        crawlerProxy = createCrawlerProxy();
     
-      Sites.remove({});
-      Queries.remove({});
-      Results.remove({});
+        Sites.remove({});
+        Queries.remove({});
+        Results.remove({});
+        
+        States.update(crawlerState._id, { $set: { switchInProgress: false } });
+      }));
+      
+      return true;
     },
   });
 }
@@ -134,12 +196,18 @@ Sites.attachSchema(new SimpleSchema({
 
 Queries.attachSchema(new SimpleSchema({
   value: {
-    type: String,
-    defaultValue: ""
+    type: String
+  },
+  results: {
+    type: Number,
+    optional: true,
+    defaultValue: 0
+  },
+  finished: {
+    type: Date,
+    optional: true
   }
 }));
-
-Results = new Mongo.Collection("results");
 
 Results.attachSchema(new SimpleSchema({
   query: {
@@ -159,18 +227,6 @@ Router.configure({
   layoutTemplate: 'layout'
 });
 
-// Router.route('/', function() {
-//   this.render('home');
-// });
-
-// Router.route('/', function() {
-//   this.render('sites');
-// });
-
-// Router.route('/', function() {
-//   this.render('queries');
-// });
-
 Router.map(function () {
   this.route('home', {
     path: '/',
@@ -187,9 +243,11 @@ Router.map(function () {
   this.route('query', {
     path: '/query/:_id',
     data: function () {
+      var q = Queries.findOne({ _id: this.params._id });
       return {
-        query: Queries.findOne({ _id: this.params._id }),
+        query: q,
         queryId: this.params._id,
+        queryValue: q.value,
       }
     },
     template: 'queryResults'
@@ -250,27 +308,45 @@ if (Meteor.isClient) {
     });
   }
   
+  function switchToNoReset(state, call, template)
+  {
+    States.update(template.data._id, {
+      $set: {
+        value: state,
+        switchInProgress: true
+      }
+    }, function() {
+      Meteor.call(call);
+    });
+  }
+  
   Template.applicationSwitch.events({
     'click a[name=turn-on]': function(event, template) {
       switchTo('stopped', 'restart', template);
     },
     'click a[name=turn-off]': function(event, template) {
-      switchTo('shutdown', 'shutdown', template);
+      switchToNoReset('shutdown', 'shutdown', template);
     },
     'click a[name=start-crawl]': function(event, template) {
       switchTo('crawling', 'startCrawl', template);
     },
     'click a[name=stop]': function(event, template) {
-      switchTo('stopped', 'stopCrawl', template);
+      switchToNoReset('stopped', 'stopCrawl', template);
     },
     'click a[name=reset]': function(event, template) {
-      switchTo('stopped', 'reset', template);
+      switchToNoReset('stopped', 'reset', template);
     }
   });
   
   Template.sites.helpers({
     sites: function() {
       return Sites.find();
+    }
+  });
+  
+  Template.query.helpers({
+    searching: function() {
+      return this.finished == null;
     }
   });
   
@@ -285,40 +361,7 @@ if (Meteor.isClient) {
       return Results.find({ query: this.queryId });
     }
   });
-}
 
-// Router.route('/query/:q', function() {
-
-//   var queryDocument = Queries.findOne({
-//     query: this.params.q
-//   });
-
-//   if (!queryDocument) {
-//     Queries.insert({
-//       query: this.params.q
-//     });
-//   }
-
-//   console.dir(queryDocument);
-
-//   this.render('query', {
-//     data: {
-//       Query: queryDocument
-//     }
-//   });
-// });
-
-if (Meteor.isClient) {
-  // AutoForm.hooks({
-  //   insertQueries: {
-  //     onSubmit: function (insertDoc, updateDoc, currentDoc) {
-  //       console.dir(insertDoc);
-  //       console.dir(updateDoc);
-  //       console.dir(currentDoc);
-  //       return false;
-  //     }
-  //   }
-  // });
   Template.site.events({
     'click button[name=false]': function(event, template) {
       Sites.update(template.data._id, {
@@ -335,9 +378,4 @@ if (Meteor.isClient) {
       });
     }
   });
-  // Template.navbar.events({
-  //   'click button[name=search]': function(event, template) {
-  //     //Router.go('/query/' + );
-  //   }
-  // });
 }

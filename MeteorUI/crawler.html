@@ -154,39 +154,19 @@
 
 <template name="query">
   <li class="list-group-item">
-    <a href="/query/{{_id}}" role="button">
-      {{value}}
-    </a>
+    <a href="/query/{{_id}}" role="button">{{value}}</a>
+    <span class="label label-default" title="Результатов найдено">{{results}}</span>
+    {{#if searching}}
+    <span class="label label-warning">выполняется</span>
+    {{else}}
+    <span class="label label-success">актуально на {{finished}}</span>
+    {{/if}}
   </li>
 </template>
 
 <template name="queryResults">
   <div class="container">
-    <h1>Результаты</h1>
-    {{#autoForm collection=Results id="insertQueryResults" type="insert"}}
-      <div class="form-group {{#if afFieldIsInvalid name='url'}} has-error{{/if}}" title="Форма добавления доступна только для отладки">
-        <div class="input-group">
-          <div class="row">
-            <div class="col-xs-3">
-              {{> afFieldInput name='query' value=queryId}}
-            </div>
-            <div class="col-xs-9">
-              {{> afFieldInput name='url'}}
-            </div>
-          </div>
-          <span class="input-group-btn">
-            <button class="btn btn-success" type="submit">Добавить</button>
-          </span>
-        </div>
-        <br />
-        {{#if afFieldIsInvalid name='query'}}
-          <div class="alert alert-danger well-sm">{{afFieldMessage name='query'}}</div>
-        {{/if}}
-        {{#if afFieldIsInvalid name='url'}}
-          <div class="alert alert-danger well-sm">{{afFieldMessage name='url'}}</div>
-        {{/if}}
-      </div>
-    {{/autoForm}}
+    <h1>Результаты по запросу «{{ queryValue }}»</h1>
     <ul class="list-group">
       {{#each results}}
         {{> queryResult}}
@@ -197,9 +177,7 @@
 
 <template name="queryResult">
   <li class="list-group-item">
-    <a href="{{url}}" role="button">
-      {{url}}
-    </a>
+    <a href="{{url}}" role="button">{{url}}</a>
     <span class="label label-default" title="Идентификатор">{{_id}}</span>
   </li>
 </template>

@@ -9,6 +9,8 @@ using Platform.Data.Core.Pairs;
 using Platform.Data.Core.Sequences;
 using Platform.Helpers.Threading;
 
+using EdgeFunc = System.Func<object, System.Threading.Tasks.Task<object>>;
+
 #pragma warning disable 1998
 
 // ReSharper disable ForCanBeConvertedToForeach
@@ -63,9 +65,46 @@ namespace Platform.Web.Crawler
             AllocateMarker(ref currentMarker, out _sequencesMarker, "маркер последовательности");
         }
 
-        public async Task<object> Invoke(dynamic input)
+        private async Task WaitAll()
+        {
+            Task task;
+            while (_tasks.TryTake(out task))
+                await task;
+        }
+
+        private async Task<object> StopAll()
+        {
+            EnsureNotDisposed();
+
+            _cancellationSource.Cancel();
+
+            await WaitAll();
+
+            _cancellationSource = new CancellationTokenSource();
+
+            return true;
+        }
+
+        private async Task DisposeAll()
+        {
+            _cancellationSource.Cancel();
+
+            await WaitAll();
+
+            _links.Dispose();
+            _memoryManager.Dispose();
+
+            _disposed = true;
+        }
+
+        private void EnsureNotDisposed()
         {
             if (_disposed) throw new ObjectDisposedException("EdgeJsProxy");
+        }
+
+        public async Task<object> Invoke(dynamic input)
+        {
+            EnsureNotDisposed();
 
             try
             {
@@ -100,11 +139,15 @@ namespace Platform.Web.Crawler
 
                 var proxy = new
                 {
-                    StartSearch = (Func<object, Task<object>>)(async (dynamic p) =>
+                    StartSearch = (EdgeFunc)(async (dynamic p) =>
                     {
+                        EnsureNotDisposed();
+
+                        await WaitAll();
+
                         var query = (string) p.query;
-                        var pageFound = (Func<object, Task<object>>)p.pageFound;
-                        var searchFinished = (Func<object, Task<object>>)p.searchFinished;
+                        var pageFound = (EdgeFunc)p.pageFound;
+                        var searchFinished = (EdgeFunc)p.searchFinished;
                         var pagesCounter = 0;
 
                         var task = Task.Factory.StartNew(() =>
@@ -138,23 +181,16 @@ namespace Platform.Web.Crawler
                         return null;
                     }),
 
-                    StopSearch = (Func<object, Task<object>>)(async p =>
+                    StopSearch = (EdgeFunc)(async p => await StopAll()),
+
+                    StartCrawl = (EdgeFunc)(async (dynamic p) =>
                     {
-                        _cancellationSource.Cancel();
+                        EnsureNotDisposed();
 
-                        Task task;
-                        while (_tasks.TryTake(out task))
-                            await task;
+                        await WaitAll();
 
-                        _cancellationSource = new CancellationTokenSource();
-
-                        return null;
-                    }),
-
-                    StartCrawl = (Func<object, Task<object>>)(async (dynamic p) =>
-                    {
                         var urls = ((object[])p.urls).Cast<string>().ToArray();
-                        var pageCrawled = (Func<object, Task<object>>)p.pageCrawled;
+                        var pageCrawled = (EdgeFunc)p.pageCrawled;
 
                         var crawler = new Crawler(pagesRepository, _cancellationSource.Token, args => pageCrawled(args));
 
@@ -183,54 +219,22 @@ namespace Platform.Web.Crawler
                         return null;
                     }),
 
-                    StopCrawl = (Func<object, Task<object>>)(async p =>
+                    StopCrawl = (EdgeFunc)(async p => await StopAll()),
+
+                    Reset = (EdgeFunc)(async p =>
                     {
-                        _cancellationSource.Cancel();
-
-                        Task task;
-                        while (_tasks.TryTake(out task))
-                            await task;
-
-                        _cancellationSource = new CancellationTokenSource();
-
-                        return null;
-                    }),
-
-                    Reset = (Func<object, Task<object>>)(async p =>
-                    {
-                        if (!_disposed)
-                        {
-                            _cancellationSource.Cancel();
-
-                            Task task;
-                            while (_tasks.TryTake(out task))
-                                await task;
-
-                            _links.Dispose();
-                            _memoryManager.Dispose();
-
-                            _disposed = true;
-                        }
+                        if (!_disposed) await DisposeAll();
 
                         File.Delete(_dataPath);
 
                         return null;
                     }),
 
-                    Dispose = (Func<object, Task<object>>)(async p =>
+                    Dispose = (EdgeFunc)(async p =>
                     {
-                        if (_disposed) throw new ObjectDisposedException("EdgeJsProxy");
+                        EnsureNotDisposed();
 
-                        _cancellationSource.Cancel();
-
-                        Task task;
-                        while (_tasks.TryTake(out task))
-                            await task;
-
-                        _links.Dispose();
-                        _memoryManager.Dispose();
-
-                        _disposed = true;
+                        await DisposeAll();
 
                         return null;
                     })

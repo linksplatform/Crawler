@@ -48,7 +48,7 @@ namespace Platform.Web.Crawler
                 IsHttpRequestAutomaticDecompressionEnabled = true,
                 IsSendingCookiesEnabled = true,
                 IsSslCertificateValidationEnabled = false,
-                IsRespectUrlNamedAnchorOrHashbangEnabled = true,
+                IsRespectUrlNamedAnchorOrHashbangEnabled = false,
                 MinAvailableMemoryRequiredInMb = 0,
                 MaxMemoryUsageInMb = 0,
                 MaxMemoryUsageCacheTimeInSeconds = 0,
