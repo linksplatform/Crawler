@@ -90,10 +90,26 @@ if(Meteor.isServer)
       for(var i = 0; i < sitesToCrawl.length; i++)
         urlsToCrawl.push(sitesToCrawl[i].url);
       
+      var queriesToCrawl = Queries.find({ }).fetch();
+      
       crawlerProxy.StartCrawl({ urls: urlsToCrawl, pageCrawled: Meteor.bindEnvironment(function (result, callback) {
         Sites.update({ url: result.SiteUrl }, {
           $inc: { crawledPages: 1 }
-        });
+        }, function () { });
+        
+        // May be slow
+        for(var i = 0; i < queriesToCrawl.length; i++)
+        {
+          if (result.PageContent.indexOf(queriesToCrawl[i].value))
+          {
+            Queries.update(queriesToCrawl[i]._id, {
+              $inc: { results: 1 },
+              $set: { finished: new Date() }
+            }, function () { });
+            
+            Results.insert({ query: queriesToCrawl[i]._id, url: result.PageUrl }, function () { });
+          }
+        }
         
         callback(null, true);
       })}, Meteor.bindEnvironment(function () {

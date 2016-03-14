@@ -108,7 +108,12 @@ namespace Platform.Web.Crawler
             _repository.Save(e.CrawledPage);
 
             if (_pageCrawled != null)
-                _pageCrawled(new { SiteUrl = _uri.ToString(), PageUrl = e.CrawledPage.Uri.ToString() });
+                _pageCrawled(new
+                {
+                    SiteUrl = _uri.ToString(),
+                    PageUrl = e.CrawledPage.Uri.ToString(),
+                    PageContent = e.CrawledPage.Content.Text
+                });
 
             if (_cancellationToken.IsCancellationRequested)
                 e.CrawlContext.IsCrawlStopRequested = true;
