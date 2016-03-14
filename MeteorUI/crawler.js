@@ -44,7 +44,8 @@ if(Meteor.isServer)
 
 if(Meteor.isServer)
 {
-  var edge = Npm.require('edge');
+  //var edge = Npm.require('edge');
+  var edge = Meteor.npmRequire('edge');
   var path = Npm.require('path');
 
   var base = path.resolve('../../../../../.');
@@ -100,7 +101,7 @@ if(Meteor.isServer)
         // May be slow
         for(var i = 0; i < queriesToCrawl.length; i++)
         {
-          if (result.PageContent.indexOf(queriesToCrawl[i].value))
+          if (result.PageContent.indexOf(queriesToCrawl[i].value) >= 0)
           {
             Queries.update(queriesToCrawl[i]._id, {
               $inc: { results: 1 },
