@@ -347,6 +347,9 @@ if (Meteor.isClient) {
   Template.query.helpers({
     searching: function() {
       return this.finished == null;
+    },
+    finishedFormatted: function() {
+      return moment(this.finished).format('LLL');
     }
   });
   

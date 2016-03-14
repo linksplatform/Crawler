@@ -23,3 +23,5 @@ twbs:bootstrap
 aldeed:collection2
 aldeed:autoform
 matb33:collection-hooks
+momentjs:moment
+rzymek:moment-locale-ru
