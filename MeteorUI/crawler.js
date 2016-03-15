@@ -1,3 +1,38 @@
+if(Meteor.isServer) {
+  (function() {
+    
+    var handlers = [];
+    
+    Meteor.shutdown = function(callback) {
+      if(callback && callback instanceof Function) {
+        handlers.push(callback);
+      } else {
+        if (!Meteor.shutdowned) {
+          Meteor.shutdowned = true;
+        
+          for(var i = 0; i < handlers.length; i++)
+            handlers[i]();
+          
+          process.exit(); // works only with "meteor --once" (if called directly from user's code)
+        }
+      }
+    };
+    
+    // From https://github.com/numtel/meteor-mysql/blob/8825011259ab10772154c7e869bb220e69e48770/README.md#closing-connections-between-hot-code-pushes
+    // Close connections on hot code push
+    process.on('SIGTERM', Meteor.shutdown);
+    // Close connections on exit (ctrl + c)
+    process.on('SIGINT', Meteor.shutdown);
+    
+    // See also https://github.com/meteor/meteor/blob/1bd0d4764a9ed8909d44b02871b55a0d440ace57/tools/cleanup.js
+    
+    // Adding this somehow works better (or no?)
+    process.on('SIGHUP', Meteor.shutdown);
+    process.on('exit', Meteor.shutdown);
+    
+  })();
+}
+
 States = new Mongo.Collection("states");
 Sites = new Mongo.Collection("sites");
 Queries = new Mongo.Collection("queries");
@@ -56,10 +91,19 @@ if(Meteor.isServer)
       typeName: 'Platform.Web.Crawler.EdgeJsProxy',
     });
 
-    return CrawlerProxy({
+    var proxyObject = CrawlerProxy({
       dataPath: path.join(base, 'crawler.links'),
       logPath: path.join(base, 'log.txt')
     }, true);
+    
+    Meteor.shutdown(function() {
+      if(!proxyObject.disposed) { // Used to guard from multiple executions.
+        proxyObject.disposed = true;
+        proxyObject.Dispose({}, true);
+      }
+    });
+    
+    return proxyObject;
   }
   
   var crawlerProxy = createCrawlerProxy();
@@ -166,6 +210,7 @@ if(Meteor.isServer)
     },
     shutdown: function () {
       crawlerProxy.Dispose({}, Meteor.bindEnvironment(function (result) {
+        crawlerProxy.disposed = true; // Prevents running Dispose on auto clean up.
         crawlerProxy = null;
         
         States.update(crawlerState._id, { $set: { switchInProgress: false } });

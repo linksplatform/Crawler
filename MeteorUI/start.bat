@@ -1,0 +1,1 @@
+meteor --once
