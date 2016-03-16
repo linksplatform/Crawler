@@ -46,15 +46,15 @@ namespace Platform.Web.Crawler
         public void Save(CrawledPage page)
         {
             Link(
-                _pageMarker,
-                Link(
-                    Save(page.Uri),
-                    Link(
-                        Save(DateTime.UtcNow),
-                        Save(page.Content.Text)
-                    )
-                )
-           );
+                 _pageMarker,
+                 Link(
+                     Save(page.Uri),
+                     Link(
+                         Save(DateTime.UtcNow),
+                         Save(page.Content.Text)
+                     )
+                 )
+            );
         }
 
         public Uri LoadPageUriOrNull(ulong page)
@@ -74,6 +74,36 @@ namespace Platform.Web.Crawler
             }
 
             return null;
+        }
+
+        public string LoadPageContentOrNull(Uri uri)
+        {
+            const long target = LinksConstants.TargetPart;
+
+            var uriLink = Save(uri);
+
+            string result = null;
+
+            _links.Each(uriLink, LinksConstants.Any, uriAndContent =>
+            {
+                return _links.Each(LinksConstants.Any, uriAndContent, page =>
+                {
+                    if (_links.GetSource(page) == _pageMarker)
+                    {
+                        var contentLink = _links.GetByKeys(page, target, target, target);
+                        // "Get page, than it's target, than it's (page's target) target, than it's (page's target's target) target, and return."
+                        // "Get page's target's target's target"
+                        // The same as:
+                        //var contentLink = _links.GetTarget(_links.GetTarget(_links.GetTarget(page)));
+
+                        result = UnicodeMap.FromSequenceLinkToString(contentLink, _links);
+                        return LinksConstants.Break;
+                    }
+                    return LinksConstants.Continue;
+                });
+            });
+
+            return result;
         }
 
         public DateTime? LoadDateTimeOrNull(ulong link)
@@ -117,7 +147,7 @@ namespace Platform.Web.Crawler
                 {
                     if (_links.GetSourceCore(page) == _pageMarker)
                     {
-                        if(!pageHandler(page))
+                        if (!pageHandler(page))
                             return false;
 
                         counter++;
