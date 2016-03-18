@@ -306,10 +306,12 @@ Router.map(function () {
     path: '/query/:_id',
     data: function () {
       var q = Queries.findOne({ _id: this.params._id });
-      return {
-        query: q,
-        queryId: this.params._id,
-        queryValue: q.value,
+      if(q) {
+        return {
+          query: q,
+          queryId: this.params._id,
+          queryValue: q.value,
+        }
       }
     },
     template: 'queryResults'
