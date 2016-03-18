@@ -1,2 +1,6 @@
+!**/packages/*
+
+.npm
+
 log.txt
 crawler.links
