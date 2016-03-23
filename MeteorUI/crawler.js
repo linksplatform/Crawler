@@ -83,7 +83,7 @@ if(Meteor.isServer)
   var edge = Meteor.npmRequire('edge');
   var path = Npm.require('path');
 
-  var base = path.resolve('../../../../../.');
+  var base = Meteor.absolutePath;
 
   var createCrawlerProxy = function() {
     var CrawlerProxy = edge.func({

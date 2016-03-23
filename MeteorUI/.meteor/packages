@@ -26,5 +26,6 @@ matb33:collection-hooks
 momentjs:moment
 rzymek:moment-locale-ru
 meteorhacks:npm
+ostrio:meteor-root
 
 npm-container
