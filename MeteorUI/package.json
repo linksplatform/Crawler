@@ -1,0 +1,17 @@
+{
+  "name": "crawler",
+  "version": "0.0.1",
+  "description": "crawler",
+  "main": "crawler.js",
+  "dependencies": {
+    "@babel/runtime": "^7.5.5",
+    "edge-js": "^12.3.1",
+    "meteor-node-stubs": "^0.4.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Konstantin Diachenko",
+  "license": "LGPL-3.0"
+}

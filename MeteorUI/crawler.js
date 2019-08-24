@@ -79,9 +79,8 @@ if(Meteor.isServer)
 
 if(Meteor.isServer)
 {
-  //var edge = Npm.require('edge');
-  var edge = Meteor.npmRequire('edge');
-  var path = Npm.require('path');
+  var edge = require('edge-js');
+  var path = require('path');
 
   var base = Meteor.absolutePath;
 
@@ -109,6 +108,10 @@ if(Meteor.isServer)
   var crawlerProxy = createCrawlerProxy();
   
   var crawlerState = States.findOne();
+  
+  function resetCrawlerState() {
+    States.rawCollection().updateOne({ _id: crawlerState._id }, { $set: { "switchInProgress": false } });
+  }
   
   if(!crawlerState)
   {
@@ -159,19 +162,14 @@ if(Meteor.isServer)
         callback(null, true);
       })}, Meteor.bindEnvironment(function () {
         // Crawl finished
-        States.update({ value: "crawling" }, {
-          $set: {
-            value: "stopped",
-            switchInProgress: false
-          }
-        });
+        States.rawCollection().updateOne({ _id: crawlerState._id }, { $set: { value: "stopped", "switchInProgress": false } });
       }));
-      
+    
       return true;
     },
     stopCrawl: function () {
-      crawlerProxy.StopCrawl({}, Meteor.bindEnvironment(function (result) {
-        States.update(crawlerState._id, { $set: { switchInProgress: false } });
+      crawlerProxy.StopCrawl({}, Meteor.bindEnvironment(function (error, result) {
+        resetCrawlerState();
       }));
       
       return true;
@@ -197,8 +195,8 @@ if(Meteor.isServer)
       }, function() { });
     },
     stopSearch: function () {
-      crawlerProxy.StopSearch({}, Meteor.bindEnvironment(function (result) {
-        States.update(crawlerState._id, { $set: { switchInProgress: false } });
+      crawlerProxy.StopSearch({}, Meteor.bindEnvironment(function (error, result) {
+        resetCrawlerState();
       }));
       
       return true;
@@ -209,24 +207,23 @@ if(Meteor.isServer)
       return true;
     },
     shutdown: function () {
-      crawlerProxy.Dispose({}, Meteor.bindEnvironment(function (result) {
+      crawlerProxy.Dispose({}, Meteor.bindEnvironment(function (error, result) {
         crawlerProxy.disposed = true; // Prevents running Dispose on auto clean up.
         crawlerProxy = null;
-        
-        States.update(crawlerState._id, { $set: { switchInProgress: false } });
+        resetCrawlerState();
       }));
       
       return true;
     },
     reset: function () {
-      crawlerProxy.Reset({}, Meteor.bindEnvironment(function (result) {
+      crawlerProxy.Reset({}, Meteor.bindEnvironment(function (error, result) {
         crawlerProxy = createCrawlerProxy();
     
-        Sites.remove({});
-        Queries.remove({});
-        Results.remove({});
+        Sites.rawCollection().remove({});
+        Queries.rawCollection().remove({});
+        Results.rawCollection().remove({});
         
-        States.update(crawlerState._id, { $set: { switchInProgress: false } });
+        resetCrawlerState();
       }));
       
       return true;
@@ -366,8 +363,8 @@ if (Meteor.isClient) {
         switchInProgress: true
       }
     }, function() {
-      Meteor.call(call, function() {
-        States.update(template.data._id, { $set: { switchInProgress: false } });
+      Meteor.call(call, function(error, result) {
+        States.update(template.data._id, { $set: { "switchInProgress": false } });
       });
     });
   }
