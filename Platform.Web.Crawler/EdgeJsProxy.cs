@@ -2,13 +2,17 @@
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using log4net;
-using Platform.Data.Core.Pairs;
-using Platform.Data.Core.Sequences;
-using Platform.Helpers.Threading;
-
+using Platform.Data;
+using Platform.Data.Doublets;
+using Platform.Data.Doublets.Decorators;
+using Platform.Data.Doublets.Memory.United.Specific;
+using Platform.Data.Doublets.Sequences;
+using Platform.Data.Doublets.Unicode;
+using Platform.Threading;
 using EdgeFunc = System.Func<object, System.Threading.Tasks.Task<object>>;
 
 #pragma warning disable 1998
@@ -28,8 +32,8 @@ namespace Platform.Web.Crawler
 
         private string _dataPath;
 
-        private LinksMemoryManager _memoryManager;
-        private Links _links;
+        private UInt64UnitedMemoryLinks _memoryManager;
+        private UInt64Links _links;
 
         private ulong _pageMarker;
         private ulong _sequencesMarker;
@@ -45,7 +49,7 @@ namespace Platform.Web.Crawler
 
         private ulong CreatePoint()
         {
-            return _links.Create(LinksConstants.Itself, LinksConstants.Itself);
+            return _links.GetOrCreate(_links.Constants.Itself, _links.Constants.Itself);
         }
 
         private void AllocateMarker(ref ulong currentMarker, out ulong marker, string markerName)
@@ -110,6 +114,8 @@ namespace Platform.Web.Crawler
             {
                 var logPath = input.logPath as string;
 
+                Console.OutputEncoding = Encoding.UTF8;
+
                 new LogService().Configure(logPath);
                 _logger = LogManager.GetLogger("default");
 
@@ -120,20 +126,20 @@ namespace Platform.Web.Crawler
                 if (string.IsNullOrWhiteSpace(_dataPath))
                     _dataPath = DefaultDataFile;
 
-                _memoryManager = new LinksMemoryManager(_dataPath, 64 * 1024 * 1024);
-                _links = new Links(_memoryManager);
+                _memoryManager = new UInt64UnitedMemoryLinks(_dataPath, 64 * 1024 * 1024);
+                _links = new UInt64Links(_memoryManager);
 
                 new UnicodeMap(_links).Init();
 
                 AllocateMarkers();
 
-                var sequencesOptions = new SequencesOptions
+                var sequencesOptions = new SequencesOptions<ulong>
                 {
                     UseSequenceMarker = true,
                     SequenceMarkerLink = _sequencesMarker
                 };
 
-                var sequences = new Sequences(_links, sequencesOptions);
+                var sequences = new Sequences(new SynchronizedLinks<ulong>(_links), sequencesOptions);
 
                 var pagesRepository = new PagesService(_links, sequences, _pageMarker);
 

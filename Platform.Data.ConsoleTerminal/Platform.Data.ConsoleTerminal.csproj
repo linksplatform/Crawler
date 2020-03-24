@@ -65,16 +65,42 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Platform.Communication, Version=0.0.5.34907, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Platform.Communication.0.0.5\lib\net45\Platform.Communication.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Platform.Collections, Version=0.2.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Platform.Collections.0.2.1\lib\net472\Platform.Collections.dll</HintPath>
     </Reference>
-    <Reference Include="Platform.Helpers, Version=0.0.5.34906, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Platform.Helpers.0.0.5\lib\net45\Platform.Helpers.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Platform.Communication, Version=0.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Platform.Communication.0.2.0\lib\net472\Platform.Communication.dll</HintPath>
+    </Reference>
+    <Reference Include="Platform.Disposables, Version=0.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Platform.Disposables.0.2.0\lib\net472\Platform.Disposables.dll</HintPath>
+    </Reference>
+    <Reference Include="Platform.Exceptions, Version=0.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Platform.Exceptions.0.3.0\lib\net472\Platform.Exceptions.dll</HintPath>
+    </Reference>
+    <Reference Include="Platform.Interfaces, Version=0.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Platform.Interfaces.0.3.0\lib\net472\Platform.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Platform.Random, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Platform.Random.0.1.0\lib\net472\Platform.Random.dll</HintPath>
+    </Reference>
+    <Reference Include="Platform.Ranges, Version=0.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Platform.Ranges.0.2.0\lib\net472\Platform.Ranges.dll</HintPath>
+    </Reference>
+    <Reference Include="Platform.Reflection, Version=0.4.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Platform.Reflection.0.4.0\lib\net472\Platform.Reflection.dll</HintPath>
+    </Reference>
+    <Reference Include="Platform.Singletons, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Platform.Singletons.0.1.0\lib\net472\Platform.Singletons.dll</HintPath>
+    </Reference>
+    <Reference Include="Platform.Threading, Version=0.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Platform.Threading.0.2.0\lib\net472\Platform.Threading.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Net" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
     <Reference Include="System.XML" />
     <Reference Include="System.Xml.Serialization" />
   </ItemGroup>

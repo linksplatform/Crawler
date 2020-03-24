@@ -1,4 +1,4 @@
-﻿using Abot.Poco;
+﻿using Abot2.Poco;
 
 namespace Platform.Web.Crawler
 {

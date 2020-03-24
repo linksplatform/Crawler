@@ -1,20 +1,22 @@
 ﻿using System;
 using System.Diagnostics;
-using Abot.Poco;
+using Abot2.Poco;
 using log4net;
-using Platform.Data.Core.Pairs;
-using Platform.Data.Core.Sequences;
+using Platform.Data;
+using Platform.Data.Doublets;
+using Platform.Data.Doublets.Sequences;
+using Platform.Data.Doublets.Unicode;
 
 namespace Platform.Web.Crawler
 {
     public class PagesService
     {
-        private readonly Links _links;
+        private readonly ILinks<ulong> _links;
         private readonly Sequences _sequences;
         private readonly ulong _pageMarker;
         private readonly ILog _logger;
 
-        public PagesService(Links links, Sequences sequences, ulong pageMarker)
+        public PagesService(ILinks<ulong> links, Sequences sequences, ulong pageMarker)
         {
             _links = links;
             _sequences = sequences;
@@ -25,7 +27,7 @@ namespace Platform.Web.Crawler
 
         public ulong Link(ulong source, ulong target)
         {
-            return _links.Create(source, target);
+            return _links.GetOrCreate(source, target);
         }
 
         public ulong Save(Uri uri)
@@ -61,9 +63,9 @@ namespace Platform.Web.Crawler
         {
             var pageLink = _links.GetLink(page);
 
-            if (pageLink.Source == _pageMarker)
+            if (pageLink[_links.Constants.SourcePart] == _pageMarker)
             {
-                var uriSequence = _links.GetSource(pageLink.Target);
+                var uriSequence = _links.GetSource(pageLink[_links.Constants.TargetPart]);
 
                 // TODO: Решить что делать с элементами, которые не являются символами юникода и не могут быть в них явно конвертированы
                 var uriString = UnicodeMap.FromSequenceLinkToString(uriSequence, _links);
@@ -78,29 +80,29 @@ namespace Platform.Web.Crawler
 
         public string LoadPageContentOrNull(Uri uri)
         {
-            const long target = LinksConstants.TargetPart;
+            int target = _links.Constants.TargetPart;
 
             var uriLink = Save(uri);
 
             string result = null;
 
-            _links.Each(uriLink, LinksConstants.Any, uriAndContent =>
+            _links.Each(uriLink, _links.Constants.Any, uriAndContent =>
             {
-                return _links.Each(LinksConstants.Any, uriAndContent, page =>
+                return _links.Each(_links.Constants.Any, uriAndContent[_links.Constants.IndexPart], page =>
                 {
-                    if (_links.GetSource(page) == _pageMarker)
+                    if (_links.GetSource(page[_links.Constants.IndexPart]) == _pageMarker)
                     {
-                        var contentLink = _links.GetByKeys(page, target, target, target);
+                        var contentLink = _links.GetByKeys(page[_links.Constants.IndexPart], target, target, target);
                         // "Get page, than it's target, than it's (page's target) target, than it's (page's target's target) target, and return."
                         // "Get page's target's target's target"
                         // The same as:
                         //var contentLink = _links.GetTarget(_links.GetTarget(_links.GetTarget(page)));
 
                         result = UnicodeMap.FromSequenceLinkToString(contentLink, _links);
-                        return LinksConstants.Break;
+                        return _links.Constants.Break;
                     }
-                    return LinksConstants.Continue;
-                });
+                    return _links.Constants.Continue;
+                }) ? _links.Constants.Continue : _links.Constants.Break;
             });
 
             return result;
@@ -121,7 +123,7 @@ namespace Platform.Web.Crawler
         {
             var maxTimestamp = default(DateTime);
 
-            _links.Each(Save(uri), LinksConstants.Any, contentAtDate =>
+            _links.Each(Save(uri), _links.Constants.Any, contentAtDate =>
             {
                 var timestampSequence = _links.GetSource(_links.GetTarget(contentAtDate));
 
@@ -145,15 +147,15 @@ namespace Platform.Web.Crawler
 
                 _sequences.GetAllPartiallyMatchingSequences2(page =>
                 {
-                    if (_links.GetSourceCore(page) == _pageMarker)
+                    if (_links.GetSource(page[_links.Constants.IndexPart]) == _pageMarker)
                     {
-                        if (!pageHandler(page))
-                            return false;
+                        if (!pageHandler(page[_links.Constants.IndexPart]))
+                            return _links.Constants.Break;
 
                         counter++;
                     }
 
-                    return true;
+                    return _links.Constants.Continue;
                 }, UnicodeMap.FromStringToLinkArray(partialSequence));
 
                 sw.Stop();

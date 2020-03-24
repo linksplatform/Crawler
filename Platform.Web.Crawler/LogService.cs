@@ -3,6 +3,7 @@ using log4net.Appender;
 using log4net.Core;
 using log4net.Layout;
 using log4net.Repository.Hierarchy;
+using System.Text;
 
 namespace Platform.Web.Crawler
 {
@@ -32,6 +33,7 @@ namespace Platform.Web.Crawler
                 MaximumFileSize = "50MB",
                 RollingStyle = RollingFileAppender.RollingMode.Size,
                 StaticLogFileName = true,
+                Encoding = Encoding.UTF8,
                 PreserveLogFileNameExtension = true
             };
             roller.ActivateOptions();

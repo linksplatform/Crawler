@@ -2,13 +2,17 @@
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 using Platform.Communication.Protocol.Udp;
-using Platform.Data.Core.Pairs;
-using Platform.Data.Core.Sequences;
-using Platform.Helpers;
+using Platform.Data.Doublets;
+using Platform.Data.Doublets.Decorators;
+using Platform.Data.Doublets.Memory.United.Specific;
+using Platform.Data.Doublets.Sequences;
+using Platform.Data.Doublets.Unicode;
+using Platform.IO;
 using Platform.Web.Crawler;
 
 namespace Platform.Data.CrawlerServer
@@ -21,16 +25,19 @@ namespace Platform.Data.CrawlerServer
 
         private static void Main()
         {
+            Console.OutputEncoding = Encoding.UTF8;
+
             new LogService().Configure();
 
-            var cancellationSource = ConsoleHelpers.HandleCancellation();
+            var cancellation = new ConsoleCancellation();
+            var cancellationSource = cancellation.Source;
 
             var logger = LogManager.GetLogger("default");
 
             try
             {
-                using (var memoryManager = new LinksMemoryManager(DefaultDatabaseFilename, 8 * 1024 * 1024))
-                using (var links = new Links(memoryManager))
+                using (var memoryManager = new UInt64UnitedMemoryLinks(DefaultDatabaseFilename, 8 * 1024 * 1024))
+                using (var links = new UInt64Links(memoryManager))
                 {
                     new UnicodeMap(links).Init();
 
@@ -38,20 +45,20 @@ namespace Platform.Data.CrawlerServer
                     if (links.Exists(UnicodeMap.MapSize + 1))
                         pageMarker = UnicodeMap.MapSize + 1;
                     else
-                        pageMarker = links.Create(LinksConstants.Itself, LinksConstants.Itself);
+                        pageMarker = links.GetOrCreate(links.Constants.Itself, links.Constants.Itself);
 
                     ulong sequencesMarker;
                     if (links.Exists(UnicodeMap.MapSize + 2))
                         sequencesMarker = UnicodeMap.MapSize + 2;
                     else
-                        sequencesMarker = links.Create(LinksConstants.Itself, LinksConstants.Itself);
+                        sequencesMarker = links.GetOrCreate(links.Constants.Itself, links.Constants.Itself);
 
-                    var sequencesOptions = new SequencesOptions();
+                    var sequencesOptions = new SequencesOptions<ulong>();
                     sequencesOptions.UseCompression = true;
                     sequencesOptions.UseSequenceMarker = true;
                     sequencesOptions.SequenceMarkerLink = sequencesMarker;
 
-                    var sequences = new Sequences(links, sequencesOptions);
+                    var sequences = new Doublets.Sequences.Sequences(new SynchronizedLinks<ulong>(links), sequencesOptions);
 
                     var pagesRepository = new PagesService(links, sequences, pageMarker);
 

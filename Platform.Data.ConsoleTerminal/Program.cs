@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using Platform.Communication.Protocol.Udp;
-using Platform.Helpers;
+using Platform.Exceptions;
 
 namespace Platform.Data.ConsoleTerminal
 {
@@ -12,6 +13,8 @@ namespace Platform.Data.ConsoleTerminal
 
         public static void Main(string[] args)
         {
+            Console.OutputEncoding = Encoding.UTF8;
+
             Console.CancelKeyPress += OnCancelKeyPressed;
 
             try
@@ -50,7 +53,7 @@ namespace Platform.Data.ConsoleTerminal
             }
             catch (Exception ex)
             {
-                Console.Write(ex.ToRecursiveString());
+                Console.Write(ex.ToStringWithAllInnerExceptions());
             }
 
             Console.CancelKeyPress -= OnCancelKeyPressed;

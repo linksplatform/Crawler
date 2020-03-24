@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Threading;
-using Abot.Crawler;
-using Abot.Poco;
+using Abot2.Crawler;
+using Abot2.Poco;
+using Platform.Threading;
 
 namespace Platform.Web.Crawler
 {
@@ -85,9 +86,9 @@ namespace Platform.Web.Crawler
 
             crawler.PageCrawlCompleted += crawler_ProcessPageCrawlCompleted;
 
-            crawler.ShouldCrawlPage(DecisionMaker);
+            crawler.ShouldCrawlPageDecisionMaker = DecisionMaker;
 
-            crawler.Crawl(uri);
+            crawler.CrawlAsync(uri).AwaitResult();
         }
 
         private CrawlDecision DecisionMaker(PageToCrawl pageToCrawl, CrawlContext crawlContext)
