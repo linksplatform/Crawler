@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -115,6 +116,8 @@ namespace Platform.Web.Crawler
                 Console.OutputEncoding = Encoding.UTF8;
 
                 Console.WriteLine(".NET CLR Version: {0}", Environment.Version.ToString());
+
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
 
                 new LogService().Configure(logPath);
                 _logger = LogManager.GetLogger("default");

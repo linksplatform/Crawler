@@ -47,6 +47,7 @@ namespace Platform.Web.Crawler
                 IsUriRecrawlingEnabled = false,
                 IsExternalPageCrawlingEnabled = false,
                 IsExternalPageLinksCrawlingEnabled = false,
+                MaxLinksPerPage = 2,
                 HttpServicePointConnectionLimit = 200,
                 HttpRequestTimeoutInSeconds = 15,
                 HttpRequestMaxAutoRedirects = 13,
@@ -62,8 +63,10 @@ namespace Platform.Web.Crawler
                 IsForcedLinkParsingEnabled = false,
                 MaxRetryCount = 0,
                 MinRetryDelayInMilliseconds = 50,
+                HttpProtocolVersion = HttpProtocolVersion.Version11,
 
                 // Authorization
+                UseDefaultCredentials = false,
                 IsAlwaysLogin = false,
                 LoginUser = "",
                 LoginPassword = "",

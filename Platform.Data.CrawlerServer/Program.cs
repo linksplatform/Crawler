@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -58,6 +59,8 @@ namespace Platform.Data.CrawlerServer
 
             try
             {
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
+
                 var minimumAllocationBytes = 64 * 1024 * 1024;
                 using (var memoryManager = new UInt64UnitedMemoryLinks(new FileMappedResizableDirectMemory(DefaultDatabaseFilename, minimumAllocationBytes), minimumAllocationBytes, new LinksConstants<ulong>(), IndexTreeType.SizedAndThreadedAVLBalancedTree))
                 using (var links = new UInt64Links(memoryManager))
