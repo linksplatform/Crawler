@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using Abot2.Poco;
 using log4net;
+using Platform.Collections;
 using Platform.Data;
 using Platform.Data.Doublets;
 using Platform.Data.Doublets.Sequences;
@@ -25,25 +26,13 @@ namespace Platform.Web.Crawler
             _logger = LogManager.GetLogger("default");
         }
 
-        public ulong Link(ulong source, ulong target)
-        {
-            return _links.GetOrCreate(source, target);
-        }
+        public ulong Link(ulong source, ulong target) => _links.GetOrCreate(source, target);
 
-        public ulong Save(Uri uri)
-        {
-            return Save(uri.ToString());
-        }
+        public ulong Save(Uri uri) => Save(uri.ToString());
 
-        public ulong Save(DateTime dateTime)
-        {
-            return Save(dateTime.ToString("u"));
-        }
+        public ulong Save(DateTime dateTime) => Save(dateTime.ToString("u"));
 
-        public ulong Save(string @string)
-        {
-            return _sequences.Create(UnicodeMap.FromStringToLinkArray(@string));
-        }
+        public ulong Save(string @string) => _sequences.Create(UnicodeMap.FromStringToLinkArray(@string));
 
         public void Save(CrawledPage page)
         {
@@ -61,7 +50,7 @@ namespace Platform.Web.Crawler
             );
             var linksUsed = _links.Count() - linksBefore;
             _logger.InfoFormat($"Page {page.Uri} (bytes: {page.Content?.Text?.Length}, links: {linksUsed}) saved at {now}.");
-            _logger.InfoFormat($"Page text: \n{page.Content?.Text}");
+            _logger.InfoFormat($"Page text: {page.Content?.Text.Truncate(50)} ...");
         }
 
         public Uri LoadPageUriOrNull(ulong page)
