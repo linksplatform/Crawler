@@ -43,7 +43,7 @@ namespace Platform.Web.Crawler
             console.ActivateOptions();
             hierarchy.Root.AddAppender(console);
 
-            hierarchy.Root.Level = Level.Info;
+            hierarchy.Root.Level = Level.All;
             hierarchy.Configured = true;
         }
     }

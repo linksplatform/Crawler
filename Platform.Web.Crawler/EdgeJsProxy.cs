@@ -9,9 +9,11 @@ using log4net;
 using Platform.Data;
 using Platform.Data.Doublets;
 using Platform.Data.Doublets.Decorators;
+using Platform.Data.Doublets.Memory;
 using Platform.Data.Doublets.Memory.United.Specific;
 using Platform.Data.Doublets.Sequences;
 using Platform.Data.Doublets.Unicode;
+using Platform.Memory;
 using Platform.Threading;
 using EdgeFunc = System.Func<object, System.Threading.Tasks.Task<object>>;
 
@@ -47,26 +49,22 @@ namespace Platform.Web.Crawler
             _disposed = false;
         }
 
-        private ulong CreatePoint()
+        private static void AllocateMarker(ILinks<ulong> links, ref ulong currentMarker, out ulong marker, string markerName)
         {
-            return _links.GetOrCreate(_links.Constants.Itself, _links.Constants.Itself);
-        }
-
-        private void AllocateMarker(ref ulong currentMarker, out ulong marker, string markerName)
-        {
-            marker = _links.Exists(currentMarker) ? currentMarker : CreatePoint();
-
-            if (marker != currentMarker) throw new InvalidOperationException(string.Format("Не удалось создать {0} по ожидаемому адресу {1}", markerName, currentMarker));
-
+            marker = links.Exists(currentMarker) ? currentMarker : links.CreatePoint();
+            if (marker != currentMarker)
+            {
+                throw new InvalidOperationException(string.Format("Не удалось создать {0} по ожидаемому адресу {1}", markerName, currentMarker));
+            }
             currentMarker++;
         }
 
-        private void AllocateMarkers()
+        private static void AllocateMarkers(ILinks<ulong> links, out ulong pageMarker, out ulong sequencesMarker)
         {
             ulong currentMarker = UnicodeMap.MapSize + 1;
 
-            AllocateMarker(ref currentMarker, out _pageMarker, "маркер страницы");
-            AllocateMarker(ref currentMarker, out _sequencesMarker, "маркер последовательности");
+            AllocateMarker(links, ref currentMarker, out pageMarker, "маркер страницы");
+            AllocateMarker(links, ref currentMarker, out sequencesMarker, "маркер последовательности");
         }
 
         private async Task WaitAll()
@@ -116,6 +114,8 @@ namespace Platform.Web.Crawler
 
                 Console.OutputEncoding = Encoding.UTF8;
 
+                Console.WriteLine(".NET CLR Version: {0}", Environment.Version.ToString());
+
                 new LogService().Configure(logPath);
                 _logger = LogManager.GetLogger("default");
 
@@ -126,17 +126,19 @@ namespace Platform.Web.Crawler
                 if (string.IsNullOrWhiteSpace(_dataPath))
                     _dataPath = DefaultDataFile;
 
-                _memoryManager = new UInt64UnitedMemoryLinks(_dataPath, 64 * 1024 * 1024);
+                var minimumAllocationBytes = 64 * 1024 * 1024;
+                _memoryManager = new UInt64UnitedMemoryLinks(new FileMappedResizableDirectMemory(_dataPath, minimumAllocationBytes), minimumAllocationBytes, new LinksConstants<ulong>(), IndexTreeType.SizedAndThreadedAVLBalancedTree);
                 _links = new UInt64Links(_memoryManager);
 
                 new UnicodeMap(_links).Init();
 
-                AllocateMarkers();
+                AllocateMarkers(_links, out _pageMarker, out _sequencesMarker);
 
                 var sequencesOptions = new SequencesOptions<ulong>
                 {
+                    UseCompression = true,
                     UseSequenceMarker = true,
-                    SequenceMarkerLink = _sequencesMarker
+                    SequenceMarkerLink = _sequencesMarker,
                 };
 
                 var sequences = new Sequences(new SynchronizedLinks<ulong>(_links), sequencesOptions);
@@ -151,7 +153,7 @@ namespace Platform.Web.Crawler
 
                         await WaitAll();
 
-                        var query = (string) p.query;
+                        var query = (string)p.query;
                         var pageFound = (EdgeFunc)p.pageFound;
                         var searchFinished = (EdgeFunc)p.searchFinished;
                         var pagesCounter = 0;
@@ -193,6 +195,8 @@ namespace Platform.Web.Crawler
                     {
                         EnsureNotDisposed();
 
+                        _logger.Info("StartCrawl proxy method executed.");
+
                         await WaitAll();
 
                         var urls = ((object[])p.urls).Cast<string>().ToArray();
@@ -209,12 +213,22 @@ namespace Platform.Web.Crawler
                             {
                                 if (task == null)
                                 {
-                                    task = Task.Factory.StartNew(() => crawler.Start(uri));
+                                    task = Task.Factory.StartNew(() =>
+                                    {
+                                        _logger.Info("Starting crawling...");
+                                        crawler.Start(uri);
+                                        _logger.Info("Crawling stopped.");
+                                    });
                                     _tasks.Add(task);
                                 }
                                 else
                                 {
-                                    task = task.ContinueWith(t => crawler.Start(uri));
+                                    task = task.ContinueWith(t =>
+                                    {
+                                        _logger.Info("Starting crawling...");
+                                        crawler.Start(uri);
+                                        _logger.Info("Crawling stopped.");
+                                    });
                                     _tasks.Add(task);
                                 }
                             }

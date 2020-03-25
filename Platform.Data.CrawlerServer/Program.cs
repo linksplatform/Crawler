@@ -9,10 +9,12 @@ using log4net;
 using Platform.Communication.Protocol.Udp;
 using Platform.Data.Doublets;
 using Platform.Data.Doublets.Decorators;
+using Platform.Data.Doublets.Memory;
 using Platform.Data.Doublets.Memory.United.Specific;
 using Platform.Data.Doublets.Sequences;
 using Platform.Data.Doublets.Unicode;
 using Platform.IO;
+using Platform.Memory;
 using Platform.Web.Crawler;
 
 namespace Platform.Data.CrawlerServer
@@ -23,8 +25,28 @@ namespace Platform.Data.CrawlerServer
 
         public static ConcurrentBag<Task> Tasks = new ConcurrentBag<Task>();
 
+        private static void AllocateMarker(ILinks<ulong> links, ref ulong currentMarker, out ulong marker, string markerName)
+        {
+            marker = links.Exists(currentMarker) ? currentMarker : links.CreatePoint();
+            if (marker != currentMarker)
+            {
+                throw new InvalidOperationException(string.Format("Не удалось создать {0} по ожидаемому адресу {1}", markerName, currentMarker));
+            }
+            currentMarker++;
+        }
+
+        private static void AllocateMarkers(ILinks<ulong> links, out ulong pageMarker, out ulong sequencesMarker)
+        {
+            ulong currentMarker = UnicodeMap.MapSize + 1;
+
+            AllocateMarker(links, ref currentMarker, out pageMarker, "маркер страницы");
+            AllocateMarker(links, ref currentMarker, out sequencesMarker, "маркер последовательности");
+        }
+
         private static void Main()
         {
+            Console.WriteLine(".NET CLR Version: {0}", Environment.Version.ToString());
+
             Console.OutputEncoding = Encoding.UTF8;
 
             new LogService().Configure();
@@ -36,27 +58,20 @@ namespace Platform.Data.CrawlerServer
 
             try
             {
-                using (var memoryManager = new UInt64UnitedMemoryLinks(DefaultDatabaseFilename, 8 * 1024 * 1024))
+                var minimumAllocationBytes = 64 * 1024 * 1024;
+                using (var memoryManager = new UInt64UnitedMemoryLinks(new FileMappedResizableDirectMemory(DefaultDatabaseFilename, minimumAllocationBytes), minimumAllocationBytes, new LinksConstants<ulong>(), IndexTreeType.SizedAndThreadedAVLBalancedTree))
                 using (var links = new UInt64Links(memoryManager))
                 {
                     new UnicodeMap(links).Init();
 
-                    ulong pageMarker;
-                    if (links.Exists(UnicodeMap.MapSize + 1))
-                        pageMarker = UnicodeMap.MapSize + 1;
-                    else
-                        pageMarker = links.GetOrCreate(links.Constants.Itself, links.Constants.Itself);
+                    AllocateMarkers(links, out ulong pageMarker, out ulong sequencesMarker);
 
-                    ulong sequencesMarker;
-                    if (links.Exists(UnicodeMap.MapSize + 2))
-                        sequencesMarker = UnicodeMap.MapSize + 2;
-                    else
-                        sequencesMarker = links.GetOrCreate(links.Constants.Itself, links.Constants.Itself);
-
-                    var sequencesOptions = new SequencesOptions<ulong>();
-                    sequencesOptions.UseCompression = true;
-                    sequencesOptions.UseSequenceMarker = true;
-                    sequencesOptions.SequenceMarkerLink = sequencesMarker;
+                    var sequencesOptions = new SequencesOptions<ulong>()
+                    {
+                        UseCompression = true,
+                        UseSequenceMarker = true,
+                        SequenceMarkerLink = sequencesMarker,
+                    };
 
                     var sequences = new Doublets.Sequences.Sequences(new SynchronizedLinks<ulong>(links), sequencesOptions);
 

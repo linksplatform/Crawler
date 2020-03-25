@@ -16,6 +16,6 @@ namespace Platform.Web.Crawler
             Reason = "Страница уже запрашивалась в течение 24 часов."
         };
 
-        public static readonly CrawlDecision Allow = new CrawlDecision { Allow = true };
+        public static readonly CrawlDecision Allow = new CrawlDecision { Allow = true, Reason = "ok", ShouldStopCrawl = false, ShouldHardStopCrawl = false };
     }
 }

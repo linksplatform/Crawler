@@ -47,16 +47,21 @@ namespace Platform.Web.Crawler
 
         public void Save(CrawledPage page)
         {
+            var linksBefore = _links.Count();
+            var now = DateTime.UtcNow;
             Link(
                  _pageMarker,
                  Link(
                      Save(page.Uri),
                      Link(
-                         Save(DateTime.UtcNow),
+                         Save(now),
                          Save(page.Content.Text)
                      )
                  )
             );
+            var linksUsed = _links.Count() - linksBefore;
+            _logger.InfoFormat($"Page {page.Uri} (bytes: {page.Content?.Text?.Length}, links: {linksUsed}) saved at {now}.");
+            _logger.InfoFormat($"Page text: \n{page.Content?.Text}");
         }
 
         public Uri LoadPageUriOrNull(ulong page)
