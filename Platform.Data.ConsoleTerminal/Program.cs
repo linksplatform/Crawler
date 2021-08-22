@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -7,10 +7,32 @@ using Platform.Exceptions;
 
 namespace Platform.Data.ConsoleTerminal
 {
+    /// <summary>
+    /// <para>
+    /// Represents the program.
+    /// </para>
+    /// <para></para>
+    /// </summary>
     public class Program
     {
+        /// <summary>
+        /// <para>
+        /// The terminal running.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private static bool TerminalRunning = true;
 
+        /// <summary>
+        /// <para>
+        /// Main the args.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="args">
+        /// <para>The args.</para>
+        /// <para></para>
+        /// </param>
         public static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -59,6 +81,20 @@ namespace Platform.Data.ConsoleTerminal
             Console.CancelKeyPress -= OnCancelKeyPressed;
         }
 
+        /// <summary>
+        /// <para>
+        /// Ons the cancel key pressed using the specified sender.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="sender">
+        /// <para>The sender.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="e">
+        /// <para>The .</para>
+        /// <para></para>
+        /// </param>
         private static void OnCancelKeyPressed(object sender, ConsoleCancelEventArgs e)
         {
             e.Cancel = true;

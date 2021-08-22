@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using Abot2.Poco;
 using log4net;
@@ -10,13 +10,61 @@ using Platform.Data.Doublets.Unicode;
 
 namespace Platform.Web.Crawler
 {
+    /// <summary>
+    /// <para>
+    /// Represents the pages service.
+    /// </para>
+    /// <para></para>
+    /// </summary>
     public class PagesService
     {
+        /// <summary>
+        /// <para>
+        /// The links.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private readonly ILinks<ulong> _links;
+        /// <summary>
+        /// <para>
+        /// The sequences.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private readonly Sequences _sequences;
+        /// <summary>
+        /// <para>
+        /// The page marker.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private readonly ulong _pageMarker;
+        /// <summary>
+        /// <para>
+        /// The logger.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private readonly ILog _logger;
 
+        /// <summary>
+        /// <para>
+        /// Initializes a new <see cref="PagesService"/> instance.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="links">
+        /// <para>A links.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="sequences">
+        /// <para>A sequences.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="pageMarker">
+        /// <para>A page marker.</para>
+        /// <para></para>
+        /// </param>
         public PagesService(ILinks<ulong> links, Sequences sequences, ulong pageMarker)
         {
             _links = links;
@@ -26,14 +74,84 @@ namespace Platform.Web.Crawler
             _logger = LogManager.GetLogger("default");
         }
 
+        /// <summary>
+        /// <para>
+        /// Links the source.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="source">
+        /// <para>The source.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="target">
+        /// <para>The target.</para>
+        /// <para></para>
+        /// </param>
+        /// <returns>
+        /// <para>The ulong</para>
+        /// <para></para>
+        /// </returns>
         public ulong Link(ulong source, ulong target) => _links.GetOrCreate(source, target);
 
+        /// <summary>
+        /// <para>
+        /// Saves the uri.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="uri">
+        /// <para>The uri.</para>
+        /// <para></para>
+        /// </param>
+        /// <returns>
+        /// <para>The ulong</para>
+        /// <para></para>
+        /// </returns>
         public ulong Save(Uri uri) => Save(uri.ToString());
 
+        /// <summary>
+        /// <para>
+        /// Saves the date time.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="dateTime">
+        /// <para>The date time.</para>
+        /// <para></para>
+        /// </param>
+        /// <returns>
+        /// <para>The ulong</para>
+        /// <para></para>
+        /// </returns>
         public ulong Save(DateTime dateTime) => Save(dateTime.ToString("u"));
 
+        /// <summary>
+        /// <para>
+        /// Saves the string.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="@string">
+        /// <para>The string.</para>
+        /// <para></para>
+        /// </param>
+        /// <returns>
+        /// <para>The ulong</para>
+        /// <para></para>
+        /// </returns>
         public ulong Save(string @string) => _sequences.Create(UnicodeMap.FromStringToLinkArray(@string));
 
+        /// <summary>
+        /// <para>
+        /// Saves the page.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="page">
+        /// <para>The page.</para>
+        /// <para></para>
+        /// </param>
         public void Save(CrawledPage page)
         {
             var linksBefore = _links.Count();
@@ -53,6 +171,20 @@ namespace Platform.Web.Crawler
             _logger.InfoFormat($"Page text: {page.Content?.Text.Truncate(50)} ...");
         }
 
+        /// <summary>
+        /// <para>
+        /// Loads the page uri or null using the specified page.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="page">
+        /// <para>The page.</para>
+        /// <para></para>
+        /// </param>
+        /// <returns>
+        /// <para>The uri</para>
+        /// <para></para>
+        /// </returns>
         public Uri LoadPageUriOrNull(ulong page)
         {
             var pageLink = _links.GetLink(page);
@@ -72,6 +204,20 @@ namespace Platform.Web.Crawler
             return null;
         }
 
+        /// <summary>
+        /// <para>
+        /// Loads the page content or null using the specified uri.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="uri">
+        /// <para>The uri.</para>
+        /// <para></para>
+        /// </param>
+        /// <returns>
+        /// <para>The result.</para>
+        /// <para></para>
+        /// </returns>
         public string LoadPageContentOrNull(Uri uri)
         {
             int target = _links.Constants.TargetPart;
@@ -102,6 +248,20 @@ namespace Platform.Web.Crawler
             return result;
         }
 
+        /// <summary>
+        /// <para>
+        /// Loads the date time or null using the specified link.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="link">
+        /// <para>The link.</para>
+        /// <para></para>
+        /// </param>
+        /// <returns>
+        /// <para>The date time</para>
+        /// <para></para>
+        /// </returns>
         public DateTime? LoadDateTimeOrNull(ulong link)
         {
             var dateTimeString = UnicodeMap.FromSequenceLinkToString(link, _links);
@@ -113,6 +273,20 @@ namespace Platform.Web.Crawler
             return null;
         }
 
+        /// <summary>
+        /// <para>
+        /// Gets the max crawled timestamp by uri using the specified uri.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="uri">
+        /// <para>The uri.</para>
+        /// <para></para>
+        /// </param>
+        /// <returns>
+        /// <para>The max timestamp.</para>
+        /// <para></para>
+        /// </returns>
         public DateTime GetMaxCrawledTimestampByUri(Uri uri)
         {
             var maxTimestamp = default(DateTime);
@@ -131,6 +305,24 @@ namespace Platform.Web.Crawler
             return maxTimestamp;
         }
 
+        /// <summary>
+        /// <para>
+        /// Searches the pages using the specified partial sequence.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="partialSequence">
+        /// <para>The partial sequence.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="pageHandler">
+        /// <para>The page handler.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="searchFinishedHandler">
+        /// <para>The search finished handler.</para>
+        /// <para></para>
+        /// </param>
         public void SearchPages(string partialSequence, Func<ulong, bool> pageHandler, Action searchFinishedHandler = null)
         {
             if (pageHandler != null)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
@@ -25,24 +25,96 @@ using EdgeFunc = System.Func<object, System.Threading.Tasks.Task<object>>;
 
 namespace Platform.Web.Crawler
 {
+    /// <summary>
+    /// <para>
+    /// Represents the edge js proxy.
+    /// </para>
+    /// <para></para>
+    /// </summary>
     public class EdgeJsProxy
     {
+        /// <summary>
+        /// <para>
+        /// The default data file.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private const string DefaultDataFile = "db.links";
 
+        /// <summary>
+        /// <para>
+        /// The tasks.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private readonly ConcurrentBag<Task> _tasks;
+        /// <summary>
+        /// <para>
+        /// The logger.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private ILog _logger;
+        /// <summary>
+        /// <para>
+        /// The cancellation source.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private CancellationTokenSource _cancellationSource;
 
+        /// <summary>
+        /// <para>
+        /// The data path.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private string _dataPath;
 
+        /// <summary>
+        /// <para>
+        /// The memory manager.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private UInt64UnitedMemoryLinks _memoryManager;
+        /// <summary>
+        /// <para>
+        /// The links.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private UInt64Links _links;
 
+        /// <summary>
+        /// <para>
+        /// The page marker.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private ulong _pageMarker;
+        /// <summary>
+        /// <para>
+        /// The sequences marker.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private ulong _sequencesMarker;
 
+        /// <summary>
+        /// <para>
+        /// The disposed.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private bool _disposed;
 
+        /// <summary>
+        /// <para>
+        /// Initializes a new <see cref="EdgeJsProxy"/> instance.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         public EdgeJsProxy()
         {
             _tasks = new ConcurrentBag<Task>();
@@ -50,6 +122,32 @@ namespace Platform.Web.Crawler
             _disposed = false;
         }
 
+        /// <summary>
+        /// <para>
+        /// Allocates the marker using the specified links.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="links">
+        /// <para>The links.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="currentMarker">
+        /// <para>The current marker.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="marker">
+        /// <para>The marker.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="markerName">
+        /// <para>The marker name.</para>
+        /// <para></para>
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// <para></para>
+        /// <para></para>
+        /// </exception>
         private static void AllocateMarker(ILinks<ulong> links, ref ulong currentMarker, out ulong marker, string markerName)
         {
             marker = links.Exists(currentMarker) ? currentMarker : links.CreatePoint();
@@ -60,6 +158,24 @@ namespace Platform.Web.Crawler
             currentMarker++;
         }
 
+        /// <summary>
+        /// <para>
+        /// Allocates the markers using the specified links.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="links">
+        /// <para>The links.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="pageMarker">
+        /// <para>The page marker.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="sequencesMarker">
+        /// <para>The sequences marker.</para>
+        /// <para></para>
+        /// </param>
         private static void AllocateMarkers(ILinks<ulong> links, out ulong pageMarker, out ulong sequencesMarker)
         {
             ulong currentMarker = UnicodeMap.MapSize + 1;
@@ -68,6 +184,12 @@ namespace Platform.Web.Crawler
             AllocateMarker(links, ref currentMarker, out sequencesMarker, "маркер последовательности");
         }
 
+        /// <summary>
+        /// <para>
+        /// Waits the all.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private async Task WaitAll()
         {
             Task task;
@@ -75,6 +197,16 @@ namespace Platform.Web.Crawler
                 await task;
         }
 
+        /// <summary>
+        /// <para>
+        /// Stops the all.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <returns>
+        /// <para>A task containing the object</para>
+        /// <para></para>
+        /// </returns>
         private async Task<object> StopAll()
         {
             EnsureNotDisposed();
@@ -88,6 +220,12 @@ namespace Platform.Web.Crawler
             return true;
         }
 
+        /// <summary>
+        /// <para>
+        /// Disposes the all.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private async Task DisposeAll()
         {
             _cancellationSource.Cancel();
@@ -100,11 +238,35 @@ namespace Platform.Web.Crawler
             _disposed = true;
         }
 
+        /// <summary>
+        /// <para>
+        /// Ensures the not disposed.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <exception cref="ObjectDisposedException">
+        /// <para>EdgeJsProxy</para>
+        /// <para></para>
+        /// </exception>
         private void EnsureNotDisposed()
         {
             if (_disposed) throw new ObjectDisposedException("EdgeJsProxy");
         }
 
+        /// <summary>
+        /// <para>
+        /// Invokes the input.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="input">
+        /// <para>The input.</para>
+        /// <para></para>
+        /// </param>
+        /// <returns>
+        /// <para>A task containing the object</para>
+        /// <para></para>
+        /// </returns>
         public async Task<object> Invoke(dynamic input)
         {
             EnsureNotDisposed();

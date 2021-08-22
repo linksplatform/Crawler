@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
@@ -20,12 +20,56 @@ using Platform.Web.Crawler;
 
 namespace Platform.Data.CrawlerServer
 {
+    /// <summary>
+    /// <para>
+    /// Represents the program.
+    /// </para>
+    /// <para></para>
+    /// </summary>
     internal static class Program
     {
+        /// <summary>
+        /// <para>
+        /// The default database filename.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private const string DefaultDatabaseFilename = "db.links";
 
+        /// <summary>
+        /// <para>
+        /// The task.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         public static ConcurrentBag<Task> Tasks = new ConcurrentBag<Task>();
 
+        /// <summary>
+        /// <para>
+        /// Allocates the marker using the specified links.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="links">
+        /// <para>The links.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="currentMarker">
+        /// <para>The current marker.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="marker">
+        /// <para>The marker.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="markerName">
+        /// <para>The marker name.</para>
+        /// <para></para>
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// <para></para>
+        /// <para></para>
+        /// </exception>
         private static void AllocateMarker(ILinks<ulong> links, ref ulong currentMarker, out ulong marker, string markerName)
         {
             marker = links.Exists(currentMarker) ? currentMarker : links.CreatePoint();
@@ -36,6 +80,24 @@ namespace Platform.Data.CrawlerServer
             currentMarker++;
         }
 
+        /// <summary>
+        /// <para>
+        /// Allocates the markers using the specified links.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="links">
+        /// <para>The links.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="pageMarker">
+        /// <para>The page marker.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="sequencesMarker">
+        /// <para>The sequences marker.</para>
+        /// <para></para>
+        /// </param>
         private static void AllocateMarkers(ILinks<ulong> links, out ulong pageMarker, out ulong sequencesMarker)
         {
             ulong currentMarker = UnicodeMap.MapSize + 1;
@@ -44,6 +106,12 @@ namespace Platform.Data.CrawlerServer
             AllocateMarker(links, ref currentMarker, out sequencesMarker, "маркер последовательности");
         }
 
+        /// <summary>
+        /// <para>
+        /// Main.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private static void Main()
         {
             Console.WriteLine(".NET CLR Version: {0}", Environment.Version.ToString());

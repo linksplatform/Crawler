@@ -1,4 +1,4 @@
-﻿using log4net;
+using log4net;
 using log4net.Appender;
 using log4net.Core;
 using log4net.Layout;
@@ -7,10 +7,32 @@ using System.Text;
 
 namespace Platform.Web.Crawler
 {
+    /// <summary>
+    /// <para>
+    /// Represents the log service.
+    /// </para>
+    /// <para></para>
+    /// </summary>
     public class LogService
     {
+        /// <summary>
+        /// <para>
+        /// The default log file.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private const string DefaultLogFile = "log.txt";
 
+        /// <summary>
+        /// <para>
+        /// Configures the log file.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="logFile">
+        /// <para>The log file.</para>
+        /// <para></para>
+        /// </param>
         public void Configure(string logFile = null)
         {
             var hierarchy = (Hierarchy)LogManager.GetRepository();
