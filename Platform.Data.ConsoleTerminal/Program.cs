@@ -15,6 +15,12 @@ namespace Platform.Data.ConsoleTerminal
     /// </summary>
     public class Program
     {
+        /// <summary>
+        /// <para>
+        /// The terminal running.
+        /// </para>
+        /// <para></para>
+        /// </summary>
         private static bool TerminalRunning = true;
 
         /// <summary>
@@ -74,6 +80,21 @@ namespace Platform.Data.ConsoleTerminal
 
             Console.CancelKeyPress -= OnCancelKeyPressed;
         }
+
+        /// <summary>
+        /// <para>
+        /// Ons the cancel key pressed using the specified sender.
+        /// </para>
+        /// <para></para>
+        /// </summary>
+        /// <param name="sender">
+        /// <para>The sender.</para>
+        /// <para></para>
+        /// </param>
+        /// <param name="e">
+        /// <para>The .</para>
+        /// <para></para>
+        /// </param>
         private static void OnCancelKeyPressed(object sender, ConsoleCancelEventArgs e)
         {
             e.Cancel = true;
