@@ -18,33 +18,9 @@ namespace Platform.Web.Crawler
     /// </summary>
     public class PagesService
     {
-        /// <summary>
-        /// <para>
-        /// The links.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private readonly ILinks<ulong> _links;
-        /// <summary>
-        /// <para>
-        /// The sequences.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private readonly Sequences _sequences;
-        /// <summary>
-        /// <para>
-        /// The page marker.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private readonly ulong _pageMarker;
-        /// <summary>
-        /// <para>
-        /// The logger.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private readonly ILog _logger;
 
         /// <summary>
