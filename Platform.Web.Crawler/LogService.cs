@@ -15,12 +15,6 @@ namespace Platform.Web.Crawler
     /// </summary>
     public class LogService
     {
-        /// <summary>
-        /// <para>
-        /// The default log file.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private const string DefaultLogFile = "log.txt";
 
         /// <summary>

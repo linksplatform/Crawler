@@ -16,48 +16,11 @@ namespace Platform.Web.Crawler
     /// </summary>
     public class Crawler
     {
-        /// <summary>
-        /// <para>
-        /// The default crawl configuration.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private static readonly CrawlConfiguration DefaultCrawlConfiguration;
-
-        /// <summary>
-        /// <para>
-        /// The repository.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private readonly PagesService _repository;
-        /// <summary>
-        /// <para>
-        /// The cancellation token.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private readonly CancellationToken _cancellationToken;
-        /// <summary>
-        /// <para>
-        /// The page crawled.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private readonly Action<object> _pageCrawled;
-        /// <summary>
-        /// <para>
-        /// The logger.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private readonly ILog _logger;
-        /// <summary>
-        /// <para>
-        /// The uri.
-        /// </para>
-        /// <para></para>
-        /// </summary>
         private Uri _uri;
 
         /// <summary>
@@ -97,17 +60,6 @@ namespace Platform.Web.Crawler
         {
             DefaultCrawlConfiguration = CreateDefaultConfiguration();
         }
-
-        /// <summary>
-        /// <para>
-        /// Creates the default configuration.
-        /// </para>
-        /// <para></para>
-        /// </summary>
-        /// <returns>
-        /// <para>The crawl configuration</para>
-        /// <para></para>
-        /// </returns>
         private static CrawlConfiguration CreateDefaultConfiguration()
         {
             return new CrawlConfiguration
@@ -197,102 +149,23 @@ namespace Platform.Web.Crawler
             if (result.ErrorException != null)
                 _logger.Error(result.ErrorException.Message, result.ErrorException);
         }
-
-        /// <summary>
-        /// <para>
-        /// Crawlers the page crawl disallowed using the specified sender.
-        /// </para>
-        /// <para></para>
-        /// </summary>
-        /// <param name="sender">
-        /// <para>The sender.</para>
-        /// <para></para>
-        /// </param>
-        /// <param name="e">
-        /// <para>The .</para>
-        /// <para></para>
-        /// </param>
         private void Crawler_PageCrawlDisallowed(object sender, PageCrawlDisallowedArgs e)
         {
             _logger.Info($"Crawler_PageCrawlDisallowed");
         }
-
-        /// <summary>
-        /// <para>
-        /// Crawlers the page crawl starting using the specified sender.
-        /// </para>
-        /// <para></para>
-        /// </summary>
-        /// <param name="sender">
-        /// <para>The sender.</para>
-        /// <para></para>
-        /// </param>
-        /// <param name="e">
-        /// <para>The .</para>
-        /// <para></para>
-        /// </param>
         private void Crawler_PageCrawlStarting(object sender, PageCrawlStartingArgs e)
         {
             _logger.Info($"Crawler_PageCrawlStarting");
         }
-
-        /// <summary>
-        /// <para>
-        /// Crawlers the page links crawl disallowed using the specified sender.
-        /// </para>
-        /// <para></para>
-        /// </summary>
-        /// <param name="sender">
-        /// <para>The sender.</para>
-        /// <para></para>
-        /// </param>
-        /// <param name="e">
-        /// <para>The .</para>
-        /// <para></para>
-        /// </param>
         private void Crawler_PageLinksCrawlDisallowed(object sender, PageLinksCrawlDisallowedArgs e)
         {
             _logger.Info($"Crawler_PageLinksCrawlDisallowed");
             _logger.Info(e.DisallowedReason);
         }
-
-        /// <summary>
-        /// <para>
-        /// Crawlers the robots dot text parse completed using the specified sender.
-        /// </para>
-        /// <para></para>
-        /// </summary>
-        /// <param name="sender">
-        /// <para>The sender.</para>
-        /// <para></para>
-        /// </param>
-        /// <param name="e">
-        /// <para>The .</para>
-        /// <para></para>
-        /// </param>
         private void Crawler_RobotsDotTextParseCompleted(object sender, RobotsDotTextParseCompletedArgs e)
         {
             _logger.Info($"Crawler_RobotsDotTextParseCompleted");
         }
-
-        /// <summary>
-        /// <para>
-        /// Decisions the maker using the specified page to crawl.
-        /// </para>
-        /// <para></para>
-        /// </summary>
-        /// <param name="pageToCrawl">
-        /// <para>The page to crawl.</para>
-        /// <para></para>
-        /// </param>
-        /// <param name="crawlContext">
-        /// <para>The crawl context.</para>
-        /// <para></para>
-        /// </param>
-        /// <returns>
-        /// <para>The crawl decision</para>
-        /// <para></para>
-        /// </returns>
         private CrawlDecision DecisionMaker(PageToCrawl pageToCrawl, CrawlContext crawlContext)
         {
             if (_cancellationToken.IsCancellationRequested)
@@ -312,21 +185,6 @@ namespace Platform.Web.Crawler
             _logger.Info($"{pageToCrawl.Uri} Decision: Allow.");
             return CrawlDecisions.Allow;
         }
-
-        /// <summary>
-        /// <para>
-        /// Crawlers the process page crawl completed using the specified sender.
-        /// </para>
-        /// <para></para>
-        /// </summary>
-        /// <param name="sender">
-        /// <para>The sender.</para>
-        /// <para></para>
-        /// </param>
-        /// <param name="e">
-        /// <para>The .</para>
-        /// <para></para>
-        /// </param>
         private void crawler_ProcessPageCrawlCompleted(object sender, PageCrawlCompletedArgs e)
         {
             _logger.Info("Page received.");
